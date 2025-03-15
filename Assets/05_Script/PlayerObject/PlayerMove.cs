@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.Serialization;
+using UnityEngine.InputSystem;
 
 public class PlayerMove : MonoBehaviour
 {
@@ -9,83 +9,92 @@ public class PlayerMove : MonoBehaviour
     private static readonly int Jump = Animator.StringToHash("Jump");
     private static readonly int BlendLr = Animator.StringToHash("BlendLR");
     private static readonly int Speed = Animator.StringToHash("Speed");
-    private static readonly int OnGround = Animator.StringToHash("OnGround");
-    [SerializeField] float _walkSpeed;
-    [SerializeField] float _runSpeed;
+    private static readonly int OnGround = Animator.StringToHash("OnGround"); 
+    [SerializeField] float _moveSpeed;
     [SerializeField] float _jumpForce;
+    [SerializeField] float _walkBaseAnimationSpeed;
+    [SerializeField] float _runBaseAnimationSpeed;
 
+    [SerializeField] PlayerInput _playerInput;
     [SerializeField] Animator _animator;
     [SerializeField] Rigidbody _rigidBody;
 
+    private bool _moving = false;
     private bool _onGround;
+    public Vector3 MoveDirection;
     
     
-    
+    private InputSystem_Actions _inputSystem;
+
     private void Start()
     {
         _onGround = true;
+        _inputSystem = new InputSystem_Actions();
+        _inputSystem.Player.Move.performed += OnMove;
+        _inputSystem.Player.Move.canceled += CanselMove;
         
-#if UNITY_EDITOR
-        //Cursor.lockState = CursorLockMode.Locked;
-#endif
+        _inputSystem.Enable();
     }
 
     private void Update()
     {
-        //最終的にはスマホでリリースするので仮のパソコン用スクリプト
-#if UNITY_EDITOR
-        //Editor上ではキーボード操作できるようにする
-        if (Input.GetKeyDown(KeyCode.Space) && _onGround)
+        if (_moving && _onGround)
         {
-            _animator.SetTrigger(Jump);
-            //ジャンプの処理
-            _rigidBody.AddForce(Vector3.up * _jumpForce, ForceMode.Impulse);
-            _onGround = false;
+            _rigidBody.linearVelocity = new Vector3(MoveDirection.x, _rigidBody.linearVelocity.y, MoveDirection.z);
         }
+    }
 
-        //視点を左右に回転させる
-        transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y + Input.GetAxisRaw("Mouse X"), 0);
-        //移動する
-        Vector3 move =
-            transform.TransformDirection(new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"))
-                .normalized);
-        if (Input.GetKey(KeyCode.LeftShift))
-        {
-            move *= _runSpeed;
-            _animator.SetBool(Run, true);
-        }
-        else
-        {
-            move *= _walkSpeed;
-            _animator.SetBool(Run, false);
-        }
 
-        if (move.magnitude != 0)
+    private void OnMove(InputAction.CallbackContext context)
+    {
+        _moving = true;
+        Vector2 input = context.ReadValue<Vector2>();
+        float magnitude = input.magnitude;
+        float lrWaight = input.x + 1;
+        MoveDirection = new Vector3(input.x,0,input.y) * _moveSpeed;
+        //前後移動で別のアニメーションにし、左右移動アニメーションとブレンドする
+        if (input.y > 0)
         {
+            _animator.SetBool(Back, false);
             _animator.SetBool(Forward, true);
         }
         else
         {
             _animator.SetBool(Forward, false);
+            _animator.SetBool(Back, true);
         }
 
-        if (Input.GetButtonDown("Jump"))
+        _animator.SetFloat(BlendLr, lrWaight);
+        //走っているか歩いているか
+        if (magnitude < 0.5f)
         {
-            _animator.SetTrigger(Jump);
+            _animator.SetBool(Run, false);
+            _animator.SetFloat(Speed, Mathf.Max(magnitude * _walkBaseAnimationSpeed,0.5f));
         }
-
-        _rigidBody.linearVelocity = new Vector3(move.x * _walkSpeed, _rigidBody.linearVelocity.y, move.z * _walkSpeed);
-#endif
+        else
+        {
+            _animator.SetBool(Run, true);
+            _animator.SetFloat(Speed, magnitude * _runBaseAnimationSpeed);
+        }
     }
     
     
+    
+    private void CanselMove(InputAction.CallbackContext context)
+    {
+        _moving = false;
+        _animator.SetBool(Run, false);
+        _animator.SetBool(Forward, false);
+        _animator.SetBool(Back, false);
+        _animator.SetFloat(BlendLr, 1);
+        _animator.SetFloat(Speed, 1);
+    }
 
     private void OnCollisionEnter(Collision other)
     {
         if (other.gameObject.CompareTag("Ground"))
         {
             _onGround = true;
-            _animator.SetTrigger(OnGround);
         }
     }
 }
