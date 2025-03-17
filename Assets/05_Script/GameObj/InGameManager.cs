@@ -43,6 +43,10 @@ public class InGameManager : MonoBehaviour
         
     }
 
+    /// <summary>
+    /// サブシーンのロードを行う。
+    /// ロード後、カメラの取得と位置と回転の初期化
+    /// </summary>
     private async UniTask SubSceneLoad()
     {
         AsyncOperation op = SceneManager.LoadSceneAsync(_subScene, LoadSceneMode.Additive);

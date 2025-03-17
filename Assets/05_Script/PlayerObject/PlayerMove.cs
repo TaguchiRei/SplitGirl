@@ -45,6 +45,7 @@ public class PlayerMove : MonoBehaviour
     }
 
 
+    //仮想パッドを動かしたときに呼び出される。
     private void OnMove(InputAction.CallbackContext context)
     {
         _moving = true;
