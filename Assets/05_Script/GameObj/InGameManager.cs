@@ -8,18 +8,19 @@ using Unity.VisualScripting;
 
 public class InGameManager : MonoBehaviour
 {
-    [SerializeField] string _subScene;
-    private GameObject _mainCamera;
-    private GameObject _subCamera;
-    private List<GameObject> _allCamera;
+    [SerializeField] private string _subScene;
+    [SerializeField] private GameObject _Screen;
+    private PlayerMove _mainPlayer;
+    private PlayerMove _subPlayer;
+    private List<PlayerMove> _playerMoves;
 
     public CameraMode cameraMode;
     
 
     private void Start()
     {
-        SubSceneLoad().Forget();
         cameraMode = CameraMode.MainCameraMove;
+        SubSceneLoad().Forget();
     }
 
     /// <summary>
@@ -31,15 +32,23 @@ public class InGameManager : MonoBehaviour
         {
             //画面分割時、メインカメラ側の操作をする(キャラクターの位置は両シーンで別)
             case CameraMode.MainCameraMove:
+                _Screen.SetActive(true);
+                _mainPlayer.MoveMode = true;
+                _subPlayer.MoveMode = false;
                 break;
             //画面分割時、サブカメラ側の操作をする(キャラクターの位置は両シーンで別)
             case CameraMode.SubCameraMove:
+                _Screen.SetActive(true);
+                _mainPlayer.MoveMode = false;
+                _subPlayer.MoveMode = true;
                 break;
             //画面分割をしない純粋なメインカメラ(キャラクターの居場所はメインシーン依存)
             case CameraMode.MainOnly:
+                _Screen.SetActive(false);
                 break;
             //画面分割をしない純粋なサブカメラ(キャラクターの居場所はサブシーン依存)
             case CameraMode.SubOnly:
+                _Screen.SetActive(false);
                 break;
         }
     }
@@ -57,10 +66,9 @@ public class InGameManager : MonoBehaviour
     {
         AsyncOperation op = SceneManager.LoadSceneAsync(_subScene, LoadSceneMode.Additive);
         await op.ToUniTask();
-        _allCamera = FindObjectsByType<Camera>(FindObjectsSortMode.None).Select(x => x.gameObject).ToList();
-        _mainCamera = _allCamera.Find(o => o.gameObject.CompareTag("MainCamera"));
-        _subCamera = _allCamera.Find(o => o.gameObject.CompareTag("SubCamera"));
-        _subCamera.transform.SetPositionAndRotation(_mainCamera.transform.position, _mainCamera.transform.rotation);
+        _playerMoves = FindObjectsByType<PlayerMove>(FindObjectsSortMode.None).ToList();
+        _mainPlayer = _playerMoves.FirstOrDefault(x => x.CompareTag("MainPlayer"));
+        _subPlayer = _playerMoves.FirstOrDefault(x => x.CompareTag("SubPlayer"));
         ModeChange();
     }
 
