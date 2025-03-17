@@ -193,7 +193,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 922457703410117115, guid: c728756a17413614bb555f8067be04b1, type: 3}
       propertyPath: m_TagString
-      value: SubCamera
+      value: SubPlayer
       objectReference: {fileID: 0}
     - target: {fileID: 926979873611148854, guid: c728756a17413614bb555f8067be04b1, type: 3}
       propertyPath: m_Layer

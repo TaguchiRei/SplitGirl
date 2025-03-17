@@ -24,6 +24,10 @@ public class PlayerMove : MonoBehaviour
     public bool MoveMode;
     public Vector3 MoveDirection;
     
+    //トータル画面長押し時間、距離
+    private bool _isTouch = false;
+    private float _splitTimer = 0f;
+    private Vector2 _timeToTouch = Vector2.zero;
     
     private InputSystem_Actions _inputSystem;
 
@@ -31,10 +35,12 @@ public class PlayerMove : MonoBehaviour
     {
         MoveMode = false;
         _onGround = true;
+        
         _inputSystem = new InputSystem_Actions();
         _inputSystem.Player.Move.performed += OnMove;
         _inputSystem.Player.Move.canceled += CanselMove;
-        
+        _inputSystem.Player.Look.started += OnTouch;
+        _inputSystem.Player.Look.performed += PreformedTouch;
         _inputSystem.Enable();
     }
 
@@ -81,7 +87,16 @@ public class PlayerMove : MonoBehaviour
             _animator.SetFloat(Speed, magnitude * _runBaseAnimationSpeed);
         }
     }
-    
+
+    private void OnTouch(InputAction.CallbackContext context)
+    {
+        _isTouch = true;
+    }
+
+    private void PreformedTouch(InputAction.CallbackContext context)
+    {
+        
+    }
     
     
     private void CanselMove(InputAction.CallbackContext context)
@@ -100,5 +115,11 @@ public class PlayerMove : MonoBehaviour
         {
             _onGround = true;
         }
+    }
+
+    private enum LookSplit
+    {
+        Look,
+        Split
     }
 }
