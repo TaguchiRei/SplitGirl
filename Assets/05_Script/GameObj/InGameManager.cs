@@ -19,20 +19,27 @@ public class InGameManager : MonoBehaviour
     private void Start()
     {
         SubSceneLoad().Forget();
-        cameraMode = CameraMode.MainCamera;
+        cameraMode = CameraMode.MainCameraMove;
     }
 
+    /// <summary>
+    /// モード変更直後の処理を行う。
+    /// </summary>
     private void ModeChange()
     {
         switch (cameraMode)
         {
-            case CameraMode.MainCamera:
-                //_subCamera.transform.SetParent(_mainCamera.transform);
+            //画面分割時、メインカメラ側の操作をする(キャラクターの位置は両シーンで別)
+            case CameraMode.MainCameraMove:
                 break;
-            case CameraMode.SubCamera:
-                
+            //画面分割時、サブカメラ側の操作をする(キャラクターの位置は両シーンで別)
+            case CameraMode.SubCameraMove:
                 break;
-            case CameraMode.BothCamera:
+            //画面分割をしない純粋なメインカメラ(キャラクターの居場所はメインシーン依存)
+            case CameraMode.MainOnly:
+                break;
+            //画面分割をしない純粋なサブカメラ(キャラクターの居場所はサブシーン依存)
+            case CameraMode.SubOnly:
                 break;
         }
     }
@@ -57,11 +64,18 @@ public class InGameManager : MonoBehaviour
         ModeChange();
     }
 
+    public void ModeSet(CameraMode mode)
+    {
+        cameraMode = mode;
+        ModeChange();
+    }
+    
     public enum CameraMode
     {
-        MainCamera,
-        BothCamera,
-        SubCamera,
+        MainCameraMove,
+        SubCameraMove,
+        MainOnly,
+        SubOnly
     }
 
 }
