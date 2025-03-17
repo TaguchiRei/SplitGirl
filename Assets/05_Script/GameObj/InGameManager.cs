@@ -11,7 +11,6 @@ public class InGameManager : MonoBehaviour
     [SerializeField] string _subScene;
     private GameObject _mainCamera;
     private GameObject _subCamera;
-    
     private List<GameObject> _allCamera;
 
     public CameraMode cameraMode;
@@ -28,7 +27,7 @@ public class InGameManager : MonoBehaviour
         switch (cameraMode)
         {
             case CameraMode.MainCamera:
-                _subCamera.transform.SetParent(_mainCamera.transform);
+                //_subCamera.transform.SetParent(_mainCamera.transform);
                 break;
             case CameraMode.SubCamera:
                 
