@@ -14,13 +14,14 @@ public class PlayerMove : MonoBehaviour
     [SerializeField] float _jumpForce;
     [SerializeField] float _walkBaseAnimationSpeed;
     [SerializeField] float _runBaseAnimationSpeed;
-
-    [SerializeField] PlayerInput _playerInput;
+    
     [SerializeField] Animator _animator;
     [SerializeField] Rigidbody _rigidBody;
 
     private bool _moving = false;
     private bool _onGround;
+
+    public bool MoveMode;
     public Vector3 MoveDirection;
     
     
@@ -28,6 +29,7 @@ public class PlayerMove : MonoBehaviour
 
     private void Start()
     {
+        MoveMode = false;
         _onGround = true;
         _inputSystem = new InputSystem_Actions();
         _inputSystem.Player.Move.performed += OnMove;
@@ -51,8 +53,9 @@ public class PlayerMove : MonoBehaviour
         _moving = true;
         Vector2 input = context.ReadValue<Vector2>();
         float magnitude = input.magnitude;
-        float lrWaight = input.x + 1;
-        MoveDirection = new Vector3(input.x,0,input.y) * _moveSpeed;
+        float lrWeight = input.x + 1;
+        if(MoveMode)
+            MoveDirection = new Vector3(input.x,0,input.y) * _moveSpeed;
         //前後移動で別のアニメーションにし、左右移動アニメーションとブレンドする
         if (input.y > 0)
         {
@@ -65,7 +68,7 @@ public class PlayerMove : MonoBehaviour
             _animator.SetBool(Back, true);
         }
 
-        _animator.SetFloat(BlendLr, lrWaight);
+        _animator.SetFloat(BlendLr, lrWeight);
         //走っているか歩いているか
         if (magnitude < 0.5f)
         {
