@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -27,9 +28,10 @@ public class PlayerMove : MonoBehaviour
     //トータル画面長押し時間、距離
     private bool _isTouch = false;
     private float _splitTimer = 0f;
-    private Vector2 _timeToTouch = Vector2.zero;
+    private Vector2 _moveToTouch = Vector2.zero;
     
     private InputSystem_Actions _inputSystem;
+    private InGameManager _inGameManager;
 
     private void Start()
     {
@@ -42,6 +44,8 @@ public class PlayerMove : MonoBehaviour
         _inputSystem.Player.Look.started += OnTouch;
         _inputSystem.Player.Look.performed += PreformedTouch;
         _inputSystem.Enable();
+
+        _inGameManager = FindAnyObjectByType<InGameManager>();
     }
 
     private void Update()
@@ -91,11 +95,24 @@ public class PlayerMove : MonoBehaviour
     private void OnTouch(InputAction.CallbackContext context)
     {
         _isTouch = true;
+        _splitTimer = 0;
+        _moveToTouch = Vector2.zero;
     }
 
     private void PreformedTouch(InputAction.CallbackContext context)
     {
-        
+        if (!_isTouch)
+        {
+            return;
+        }
+        var value = context.ReadValue<Vector2>();
+        Debug.Log(value.x + " " + value.y);
+        //操作による変化が閾値を上回っていた場合のみ操作を実行
+        if (value.magnitude <= _inGameManager.LookThreshold)
+        {
+            return;
+        }
+        //transform.rotation = 
     }
     
     

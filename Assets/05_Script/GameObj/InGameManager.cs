@@ -14,6 +14,7 @@ public class InGameManager : MonoBehaviour
     private PlayerMove _subPlayer;
     private List<PlayerMove> _playerMoves;
 
+    public float LookThreshold = 1;
     public CameraMode cameraMode;
     
 
