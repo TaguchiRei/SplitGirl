@@ -27,7 +27,7 @@ public class InGameManager : MonoBehaviour
         switch (cameraMode)
         {
             case CameraMode.MainCamera:
-                _subCamera.transform.SetParent(_mainCamera.transform);
+                //_subCamera.transform.SetParent(_mainCamera.transform);
                 break;
             case CameraMode.SubCamera:
                 
