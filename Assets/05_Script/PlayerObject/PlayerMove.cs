@@ -39,22 +39,22 @@ public class PlayerMove : MonoBehaviour
         _inputSystem = new InputSystem_Actions();
         _inputSystem.Player.Move.performed += OnMove;
         _inputSystem.Player.Move.canceled += CanselMove;
-        _inputSystem.Player.Interact.started += OnInteract;
         _inputSystem.Enable();
 
         _inGameManager = FindAnyObjectByType<InGameManager>();
         
         //アニメーション関連初期化
+        var pam = FindAnyObjectByType<PlayerAnimationManager>();
         var pom = FindAnyObjectByType<PlayerOperationManager>();
         //アニメーションを設定
         if (gameObject.CompareTag("MainPlayer"))
         {
-            
-            pom._mainPlayerAnimator = _animator;
+            pam._mainPlayerAnimator = _animator;
+            pom.SetMoveAction();
         }
         else
         {
-            pom._subPlayerAnimator = _animator;
+            pam._subPlayerAnimator = _animator;
         }
     }
 

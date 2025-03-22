@@ -15,17 +15,21 @@ public class PlayerAnimationManager : MonoBehaviour
     public Animator _mainPlayerAnimator;
     public Animator _subPlayerAnimator;
 
-    void UseLever(LeverLR leverLR = LeverLR.left)
+    /// <summary>
+    /// 両方のレバー起動アニメーションを動かす
+    /// </summary>
+    /// <param name="leverLR">初期値はLeft</param>
+    public void UseLever(LeverLR leverLR = LeverLR.left)
     {
         if (leverLR == LeverLR.left)
         {
             _mainPlayerAnimator.SetTrigger(UseLeverL);
             _subPlayerAnimator.SetTrigger(UseLeverL);
-            _mainPlayerAnimator.SetTrigger(UseLeverL);
         }
         else
         {
-            
+            _mainPlayerAnimator.SetTrigger(UseLeverR);
+            _subPlayerAnimator.SetTrigger(UseLeverR);
         }
     }
 
