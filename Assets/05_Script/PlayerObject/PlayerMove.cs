@@ -52,6 +52,16 @@ public class PlayerMove : MonoBehaviour
         _inputSystem.Enable();
 
         _inGameManager = FindAnyObjectByType<InGameManager>();
+
+        //アニメーションを設定
+        if (gameObject.CompareTag("MainPlayer"))
+        {
+            FindAnyObjectByType<PlayerAnimationManager>()._mainPlayerAnimator = _animator;
+        }
+        else
+        {
+            FindAnyObjectByType<PlayerAnimationManager>()._subPlayerAnimator = _animator;
+        }
     }
 
     private void Update()

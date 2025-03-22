@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class PlayerAnimationManager : MonoBehaviour
 {
-    private Animator _mainPlayerAnimator;
-    private Animator _subPlayerAnimator;
+    public Animator _mainPlayerAnimator;
+    public Animator _subPlayerAnimator;
     
     
 }
