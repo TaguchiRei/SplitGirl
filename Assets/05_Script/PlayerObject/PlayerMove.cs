@@ -17,7 +17,7 @@ public class PlayerMove : MonoBehaviour
 
     public bool _canMove;
     public bool _moving;
-    private bool _onGround;
+    public bool _onGround;
 
     public bool MoveMode;
     public Vector3 MoveDirection;
@@ -50,7 +50,6 @@ public class PlayerMove : MonoBehaviour
         if (gameObject.CompareTag("MainPlayer"))
         {
             pam._mainPlayerAnimator = _animator;
-            pom.SetMoveAction();
         }
         else
         {

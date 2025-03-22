@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -14,6 +15,8 @@ public class InGameManager : MonoBehaviour
 
     public float LookThreshold = 1;
     public CameraMode cameraMode;
+
+    public Action LoadedStart;
     
 
     private void Start()
@@ -68,6 +71,7 @@ public class InGameManager : MonoBehaviour
         _playerMoves = FindObjectsByType<PlayerMove>(FindObjectsSortMode.None).ToList();
         _mainPlayer = _playerMoves.FirstOrDefault(x => x.CompareTag("MainPlayer"));
         _subPlayer = _playerMoves.FirstOrDefault(x => x.CompareTag("SubPlayer"));
+        LoadedStart?.Invoke();
         ModeChange();
     }
 
