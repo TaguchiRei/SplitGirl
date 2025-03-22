@@ -1,6 +1,9 @@
-using System.Linq;
+using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DG.Tweening;
+using Sequence = DG.Tweening.Sequence;
 
 public class PlayerMove : MonoBehaviour
 {
@@ -10,26 +13,30 @@ public class PlayerMove : MonoBehaviour
     private static readonly int Jump = Animator.StringToHash("Jump");
     private static readonly int BlendLr = Animator.StringToHash("BlendLR");
     private static readonly int Speed = Animator.StringToHash("Speed");
-    private static readonly int OnGround = Animator.StringToHash("OnGround"); 
+    private static readonly int OnGround = Animator.StringToHash("OnGround");
+    private static readonly int UseLeverR = Animator.StringToHash("UseLeverR");
+    private static readonly int UseLeverL = Animator.StringToHash("UseLeverL");
     [SerializeField] float _moveSpeed;
     [SerializeField] float _jumpForce;
     [SerializeField] float _walkBaseAnimationSpeed;
     [SerializeField] float _runBaseAnimationSpeed;
-    
+
     [SerializeField] Animator _animator;
     [SerializeField] Rigidbody _rigidBody;
 
+    private bool _canMove;
     private bool _moving = false;
     private bool _onGround;
 
     public bool MoveMode;
     public Vector3 MoveDirection;
-    
+
     //トータル画面長押し時間、距離
     private bool _isTouch = false;
     private float _splitTimer = 0f;
     private Vector2 _moveToTouch = Vector2.zero;
-    
+    private Collider[] _interactColliders = new Collider[10];
+
     private InputSystem_Actions _inputSystem;
     private InGameManager _inGameManager;
 
@@ -37,12 +44,11 @@ public class PlayerMove : MonoBehaviour
     {
         MoveMode = false;
         _onGround = true;
-        
+        _canMove = true;
         _inputSystem = new InputSystem_Actions();
         _inputSystem.Player.Move.performed += OnMove;
         _inputSystem.Player.Move.canceled += CanselMove;
-        _inputSystem.Player.Look.started += OnTouch;
-        _inputSystem.Player.Look.performed += PreformedTouch;
+        _inputSystem.Player.Interact.started += OnInteract;
         _inputSystem.Enable();
 
         _inGameManager = FindAnyObjectByType<InGameManager>();
@@ -50,7 +56,7 @@ public class PlayerMove : MonoBehaviour
 
     private void Update()
     {
-        if (_moving && _onGround)
+        if (_moving && _onGround && _canMove)
         {
             _rigidBody.linearVelocity = new Vector3(MoveDirection.x, _rigidBody.linearVelocity.y, MoveDirection.z);
         }
@@ -64,8 +70,8 @@ public class PlayerMove : MonoBehaviour
         Vector2 input = context.ReadValue<Vector2>();
         float magnitude = input.magnitude;
         float lrWeight = input.x + 1;
-        if(MoveMode)
-            MoveDirection = new Vector3(input.x,0,input.y) * _moveSpeed;
+        if (MoveMode)
+            MoveDirection = new Vector3(input.x, 0, input.y) * _moveSpeed;
         //前後移動で別のアニメーションにし、左右移動アニメーションとブレンドする
         if (input.y > 0)
         {
@@ -83,7 +89,7 @@ public class PlayerMove : MonoBehaviour
         if (magnitude < 0.5f)
         {
             _animator.SetBool(Run, false);
-            _animator.SetFloat(Speed, Mathf.Max(magnitude * _walkBaseAnimationSpeed,0.5f));
+            _animator.SetFloat(Speed, Mathf.Max(magnitude * _walkBaseAnimationSpeed, 0.5f));
         }
         else
         {
@@ -92,30 +98,57 @@ public class PlayerMove : MonoBehaviour
         }
     }
 
-    private void OnTouch(InputAction.CallbackContext context)
+    void OnInteract(InputAction.CallbackContext context)
     {
-        _isTouch = true;
-        _splitTimer = 0;
-        _moveToTouch = Vector2.zero;
+        Physics.OverlapSphereNonAlloc(transform.position + transform.forward * 1.05f + Vector3.up, 1.2f, _interactColliders);
+        GameObject interactObject = null;
+
+        bool check = false;
+        foreach (var col in _interactColliders)
+        {
+            if (col == null)
+                break;
+            if (col.gameObject.CompareTag("Interactive"))
+            {
+                interactObject = col.gameObject;
+                check = true;
+            }
+        }
+        if (interactObject == null) return;
+        
+        _canMove = false;
+        Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.5f;
+        movePosition.y = transform.position.y;
+        Sequence sequence = DOTween.Sequence();
+        sequence.Append(transform.DOMove(movePosition, 0.5f));
+        sequence.Append(transform.DORotate(movePosition - transform.position, 0.2f));
+        sequence.OnComplete(() =>
+        {
+            _animator.SetTrigger(UseLeverR);
+            StartCoroutine(DelayAction(5f, () => _canMove = true));
+            StartCoroutine(TouchLever(interactObject));
+        });
+        sequence.Play();
     }
 
-    private void PreformedTouch(InputAction.CallbackContext context)
+    IEnumerator TouchLever(GameObject LeverObject)
     {
-        if (!_isTouch)
-        {
-            return;
-        }
-        var value = context.ReadValue<Vector2>();
-        Debug.Log(value.x + " " + value.y);
-        //操作による変化が閾値を上回っていた場合のみ操作を実行
-        if (value.magnitude <= _inGameManager.LookThreshold)
-        {
-            return;
-        }
-        //transform.rotation = 
+        var I = LeverObject.GetComponent<InteractObjectBase>();
+        yield return new WaitForSeconds(1.7f);
+        I.Interact();
+    }
+
+    IEnumerator DelayAction(float delay, Action action = null)
+    {
+        yield return new WaitForSeconds(delay);
+        action?.Invoke();
     }
     
-    
+    void Interacted()
+    {
+        _canMove = true;
+    }
+
     private void CanselMove(InputAction.CallbackContext context)
     {
         _moving = false;
@@ -138,5 +171,11 @@ public class PlayerMove : MonoBehaviour
     {
         Look,
         Split
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position + transform.forward * 1.05f + Vector3.up, 1.2f);
     }
 }
