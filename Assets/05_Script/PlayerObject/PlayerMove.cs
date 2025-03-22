@@ -73,11 +73,7 @@ public class PlayerMove : MonoBehaviour
     private void CanselMove(InputAction.CallbackContext context)
     {
         _moving = false;
-        _animator.SetBool(Run, false);
-        _animator.SetBool(Forward, false);
-        _animator.SetBool(Back, false);
-        _animator.SetFloat(BlendLr, 1);
-        _animator.SetFloat(Speed, 1);
+        
     }
 
     private void OnCollisionEnter(Collision other)

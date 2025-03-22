@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 public class PlayerAnimationManager : MonoBehaviour
@@ -49,6 +50,20 @@ public class PlayerAnimationManager : MonoBehaviour
         _subPlayerAnimator.SetFloat(BlendLr, blendLR);
         _mainPlayerAnimator.SetFloat(Speed, speed);
         _subPlayerAnimator.SetFloat(Speed, speed);
+    }
+
+    public void CancelMoveAnimation()
+    {
+        _mainPlayerAnimator.SetBool(Run, false);
+        _subPlayerAnimator.SetBool(Run, false);
+        _mainPlayerAnimator.SetBool(Forward, false);
+        _subPlayerAnimator.SetBool(Forward, false);
+        _mainPlayerAnimator.SetBool(Back, false);
+        _subPlayerAnimator.SetBool(Back, false);
+        _mainPlayerAnimator.SetFloat(BlendLr, 1f);
+        _subPlayerAnimator.SetFloat(BlendLr, 1f);
+        _mainPlayerAnimator.SetFloat(Speed, 1f);
+        _subPlayerAnimator.SetFloat(Speed, 1f);
     }
 
     public enum LeverLR

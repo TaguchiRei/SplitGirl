@@ -99,7 +99,9 @@ public class PlayerOperationManager : MonoBehaviour
         }
         else if (context.phase == InputActionPhase.Canceled)
         {
-            
+            _mainMoving = false;
+            _subMoving = false;
+            playerAnimationManager.CancelMoveAnimation();
         }
     }
 
