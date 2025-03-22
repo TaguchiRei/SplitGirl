@@ -56,11 +56,11 @@ public class PlayerMove : MonoBehaviour
         //アニメーションを設定
         if (gameObject.CompareTag("MainPlayer"))
         {
-            FindAnyObjectByType<PlayerAnimationManager>()._mainPlayerAnimator = _animator;
+            FindAnyObjectByType<PlayerOperationManager>()._mainPlayerAnimator = _animator;
         }
         else
         {
-            FindAnyObjectByType<PlayerAnimationManager>()._subPlayerAnimator = _animator;
+            FindAnyObjectByType<PlayerOperationManager>()._subPlayerAnimator = _animator;
         }
     }
 
@@ -127,7 +127,7 @@ public class PlayerMove : MonoBehaviour
         if (interactObject == null) return;
         
         _canMove = false;
-        Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.5f;
+        Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.42f;
         movePosition.y = transform.position.y;
         Sequence sequence = DOTween.Sequence();
         sequence.Append(transform.DOMove(movePosition, 0.5f));
