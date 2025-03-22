@@ -11,18 +11,23 @@ public class PlayerOperationManager : MonoBehaviour
     private InputSystem_Actions _inputSystem;
         
     /// <summary>移動に使う</summary>
-    private Action _moveAction;
+    private Action<InputAction.CallbackContext> _moveAction;
     private Action _cancelMoveAction;
     
     private Action _mainInteractAction;
     private Action _subInteractAction;
+
+    private GameObject _mainPlayerObject;
+    private GameObject _subPlayerObject;
     
     private Collider[] _interactColliders = new Collider[10];
     
     private void Start()
     {
         _inputSystem = new InputSystem_Actions();
-        
+        _inputSystem.Player.Move.performed += OnMoveInput;
+        _inputSystem.Player.Move.canceled += OnMoveInput;
+        _inputSystem.Player.Interact.performed += OnInteractInput;
         _inputSystem.Enable();
     }
 
@@ -39,17 +44,21 @@ public class PlayerOperationManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// インタラクト時に起動するメソッド
+    /// </summary>
+    /// <param name="context"></param>
     void OnInteractInput(InputAction.CallbackContext context)
     {
         if (context.phase == InputActionPhase.Started)
         {
-            var mainP = playerAnimationManager._mainPlayerAnimator.gameObject;
-            var subP = playerAnimationManager._subPlayerAnimator.gameObject;
-            var mainPM = mainP.GetComponent<PlayerMove>();
-            var subPM = subP.GetComponent<PlayerMove>();
+            var mainPlayerObject = playerAnimationManager._mainPlayerAnimator.gameObject;
+            var SubPlayerObject = playerAnimationManager._subPlayerAnimator.gameObject;
+            var mainPM = mainPlayerObject.GetComponent<PlayerMove>();
+            var subPM = SubPlayerObject.GetComponent<PlayerMove>();
             if (_inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove)
             {
-                Physics.OverlapSphereNonAlloc(mainP.transform.position + mainP.transform.forward * 1.05f + Vector3.up
+                Physics.OverlapSphereNonAlloc(mainPlayerObject.transform.position + mainPlayerObject.transform.forward * 1.05f + Vector3.up
                     , 1.2f
                     , _interactColliders);
                 GameObject interactObject = null;
@@ -71,29 +80,45 @@ public class PlayerOperationManager : MonoBehaviour
                 subPM._canMove = false;
                 Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.42f;
                 movePosition.y = transform.position.y;
-                Sequence sequence = DOTween.Sequence();
-                sequence.Append(transform.DOMove(movePosition, 0.5f));
-                sequence.Append(transform.DORotate(movePosition - transform.position, 0.2f));
-                sequence.OnComplete(() =>
+                if (_inGameManager.cameraMode
+                    is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove)
                 {
-                    playerAnimationManager
-                    _mainPlayerAnimator.SetTrigger(UseLeverR);
-                    _subPlayerAnimator.SetTrigger(UseLeverR);
-                    _mainPlayerAnimator.SetTrigger(UseLeverR);
-                    StartCoroutine(DelayAction(5f, () =>
-                    { 
-                        mainPM._canMove = true;
-                        subPM._canMove = true;
-                    }));
-                    StartCoroutine(TouchLever(interactObject));
-                });
-                sequence.Play();
-            }
-            else
-            {
-                
+                    UseLeverSequence(mainPlayerObject,interactObject, movePosition, mainPM, subPM).Play();
+                }
+                else
+                {
+                    UseLeverSequence(SubPlayerObject, interactObject, movePosition, mainPM, subPM);
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// レバーを起動するために移動する際に使用する。
+    /// </summary>
+    /// <param name="moveObject">動くプレイヤーオブジェクトを入れる</param>
+    /// <param name="interactObject"></param>
+    /// <param name="movePosition"></param>
+    /// <param name="mainPM"></param>
+    /// <param name="subPM"></param>
+    /// <returns></returns>
+    Sequence UseLeverSequence(GameObject moveObject,GameObject interactObject, Vector3 movePosition, PlayerMove mainPM, PlayerMove subPM)
+    {
+        return DOTween.Sequence()
+            .Append(moveObject.transform.DOMove(movePosition, 0.5f))
+            .Append(moveObject.transform.DORotate(movePosition - moveObject.transform.position, 0.2f))
+            .OnComplete(() =>
+        {
+            //----------------ここに左右を見極めるスクリプトを挟む----------------------
+            //---------------------------------------------------------------------
+            playerAnimationManager.UseLever();
+            StartCoroutine(DelayAction(5f, () =>
+            { 
+                mainPM._canMove = true;
+                subPM._canMove = true;
+            }));
+            StartCoroutine(TouchLever(interactObject));
+        });
     }
     IEnumerator DelayAction(float delay, Action action = null)
     {
@@ -110,7 +135,7 @@ public class PlayerOperationManager : MonoBehaviour
     
     public void SetMoveAction(Action moveAction)
     {
-        _moveAction += moveAction;
+        
     }
 
     public void SetInteractAction(Action interactAction)
