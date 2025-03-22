@@ -13,6 +13,9 @@ public class PlayerOperationManager : MonoBehaviour
     private InputSystem_Actions _inputSystem;
     
     //----------------メインとサブそれぞれの情報を保存---------------------
+    private bool _mainMoving;
+    private bool _subMoving;
+    
     private Action _mainInteractAction;
     private Action _subInteractAction;
     
@@ -27,17 +30,17 @@ public class PlayerOperationManager : MonoBehaviour
     
     //-----------------共通の情報を保存---------------------------------
     private bool _canMove;
-    private bool _moving;
+    private float _moveSpeed;
     private Vector3 _moveDirection;
     
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
     private  bool ModeCheck => _inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove;
 
     /// <summary>メインプレイヤーオブジェクトが動けるかを返す</summary>
-    private bool MainMoveCheck => _canMove && _moving && _mainPM._onGround;
+    private bool MainMoveCheck => _canMove && _mainMoving && _mainPM._onGround;
     
     /// <summary>サブプレイヤーオブジェクトが動けるかを返す</summary>
-    private bool SubMoveCheck => _canMove && _moving && _subPM._onGround;
+    private bool SubMoveCheck => _canMove && _subMoving && _subPM._onGround;
     //bool mainPlayerCanMove = 
 
     private Collider[] _interactColliders = new Collider[10];
@@ -86,7 +89,14 @@ public class PlayerOperationManager : MonoBehaviour
     {
         if (context.phase == InputActionPhase.Performed)
         {
-            
+            _mainMoving = true;
+            Vector2 input = context.ReadValue<Vector2>();
+            float magnitude = input.magnitude;
+            float lrWeight = input.x + 1;
+            _moveDirection = new Vector3(input.x, 0, input.y) * _moveSpeed;
+            if(ModeCheck) _mainMoving = true;
+            else _subMoving = true;
+            playerAnimationManager.MoveAnimation(input.y > 0);
         }
         else if (context.phase == InputActionPhase.Canceled)
         {

@@ -33,6 +33,18 @@ public class PlayerAnimationManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 歩くアニメーションの前後を設定する
+    /// </summary>
+    /// <param name="forward"></param>
+    public void MoveAnimation(bool forward)
+    {
+        _mainPlayerAnimator.SetBool(Forward, forward);
+        _subPlayerAnimator.SetBool(Forward, forward);
+        _mainPlayerAnimator.SetBool(Back, !forward);
+        _subPlayerAnimator.SetBool(Back, !forward);
+    }
+
     public enum LeverLR
     {
         left,
