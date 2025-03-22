@@ -7,5 +7,6 @@ public class Lever : InteractObjectBase
     public override void Interact()
     {
         animator.SetTrigger(Use);
+        interactObject.Interact();
     }
 }

@@ -3,12 +3,21 @@ using UnityEngine;
 
 public abstract class InteractedObjectBase : MonoBehaviour
 {
-    protected bool isInteracted = false;
-    public abstract void Interact();
+    private bool _isInteracted = false;
+
+    public virtual void Interact()
+    {
+        _isInteracted = true;
+    }
+
+    public virtual void Cancel()
+    {
+        _isInteracted = false;
+    }
 
     private void OnDrawGizmos()
     {
-        if(isInteracted)
+        if(_isInteracted)
             Gizmos.color = Color.yellow;
         else
             Gizmos.color = Color.blue;
