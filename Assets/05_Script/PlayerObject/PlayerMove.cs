@@ -7,15 +7,6 @@ using Sequence = DG.Tweening.Sequence;
 
 public class PlayerMove : MonoBehaviour
 {
-    private static readonly int Forward = Animator.StringToHash("Forward");
-    private static readonly int Back = Animator.StringToHash("Back");
-    private static readonly int Run = Animator.StringToHash("Run");
-    private static readonly int Jump = Animator.StringToHash("Jump");
-    private static readonly int BlendLr = Animator.StringToHash("BlendLR");
-    private static readonly int Speed = Animator.StringToHash("Speed");
-    private static readonly int OnGround = Animator.StringToHash("OnGround");
-    private static readonly int UseLeverR = Animator.StringToHash("UseLeverR");
-    private static readonly int UseLeverL = Animator.StringToHash("UseLeverL");
     [SerializeField] float _moveSpeed;
     [SerializeField] float _jumpForce;
     [SerializeField] float _walkBaseAnimationSpeed;
@@ -24,8 +15,8 @@ public class PlayerMove : MonoBehaviour
     [SerializeField] Animator _animator;
     [SerializeField] Rigidbody _rigidBody;
 
-    private bool _canMove;
-    private bool _moving = false;
+    public bool _canMove;
+    public bool _moving;
     private bool _onGround;
 
     public bool MoveMode;
@@ -52,15 +43,18 @@ public class PlayerMove : MonoBehaviour
         _inputSystem.Enable();
 
         _inGameManager = FindAnyObjectByType<InGameManager>();
-
+        
+        //アニメーション関連初期化
+        var pom = FindAnyObjectByType<PlayerOperationManager>();
         //アニメーションを設定
         if (gameObject.CompareTag("MainPlayer"))
         {
-            FindAnyObjectByType<PlayerOperationManager>()._mainPlayerAnimator = _animator;
+            
+            pom._mainPlayerAnimator = _animator;
         }
         else
         {
-            FindAnyObjectByType<PlayerOperationManager>()._subPlayerAnimator = _animator;
+            pom._subPlayerAnimator = _animator;
         }
     }
 
@@ -106,52 +100,6 @@ public class PlayerMove : MonoBehaviour
             _animator.SetBool(Run, true);
             _animator.SetFloat(Speed, magnitude * _runBaseAnimationSpeed);
         }
-    }
-
-    void OnInteract(InputAction.CallbackContext context)
-    {
-        Physics.OverlapSphereNonAlloc(transform.position + transform.forward * 1.05f + Vector3.up, 1.2f, _interactColliders);
-        GameObject interactObject = null;
-
-        bool check = false;
-        foreach (var col in _interactColliders)
-        {
-            if (col == null)
-                break;
-            if (col.gameObject.CompareTag("Interactive"))
-            {
-                interactObject = col.gameObject;
-                check = true;
-            }
-        }
-        if (interactObject == null) return;
-        
-        _canMove = false;
-        Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.42f;
-        movePosition.y = transform.position.y;
-        Sequence sequence = DOTween.Sequence();
-        sequence.Append(transform.DOMove(movePosition, 0.5f));
-        sequence.Append(transform.DORotate(movePosition - transform.position, 0.2f));
-        sequence.OnComplete(() =>
-        {
-            _animator.SetTrigger(UseLeverR);
-            StartCoroutine(DelayAction(5f, () => _canMove = true));
-            StartCoroutine(TouchLever(interactObject));
-        });
-        sequence.Play();
-    }
-
-    IEnumerator TouchLever(GameObject LeverObject)
-    {
-        var I = LeverObject.GetComponent<InteractObjectBase>();
-        yield return new WaitForSeconds(1.7f);
-        I.Interact();
-    }
-
-    IEnumerator DelayAction(float delay, Action action = null)
-    {
-        yield return new WaitForSeconds(delay);
-        action?.Invoke();
     }
     
     void Interacted()
