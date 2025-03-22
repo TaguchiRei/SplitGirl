@@ -7,26 +7,37 @@ using UnityEngine.InputSystem;
 
 public class PlayerOperationManager : MonoBehaviour
 {
+    //----------------各マネージャー等の情報を保存------------------------
     [SerializeField] private PlayerAnimationManager playerAnimationManager;
     [SerializeField] private InGameManager _inGameManager;
     private InputSystem_Actions _inputSystem;
-
-    /// <summary>移動に使う</summary>
-    private Action _moveAction;
-
-    private Action _cancelMoveAction;
-
+    
+    //----------------メインとサブそれぞれの情報を保存---------------------
     private Action _mainInteractAction;
     private Action _subInteractAction;
-
+    
     private GameObject _mainPlayerObject;
     private GameObject _subPlayerObject;
+    
     private PlayerMove _mainPM;
     private PlayerMove _subPM;
+
+    private Rigidbody _mainRigidbody;
+    private Rigidbody _subRigidbody;
+    
+    //-----------------共通の情報を保存---------------------------------
+    private bool _canMove;
+    private bool _moving;
+    private Vector3 _moveDirection;
     
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
-    private  bool MoveCheck => _inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove;
+    private  bool ModeCheck => _inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove;
+
+    /// <summary>メインプレイヤーオブジェクトが動けるかを返す</summary>
+    private bool MainMoveCheck => _canMove && _moving && _mainPM._onGround;
     
+    /// <summary>サブプレイヤーオブジェクトが動けるかを返す</summary>
+    private bool SubMoveCheck => _canMove && _moving && _subPM._onGround;
     //bool mainPlayerCanMove = 
 
     private Collider[] _interactColliders = new Collider[10];
@@ -54,15 +65,20 @@ public class PlayerOperationManager : MonoBehaviour
         _subPlayerObject = playerAnimationManager._subPlayerAnimator.gameObject;
         _mainPM = _mainPlayerObject.GetComponent<PlayerMove>();
         _subPM = _subPlayerObject.GetComponent<PlayerMove>();
+        _mainRigidbody = _mainPlayerObject.GetComponent<Rigidbody>();
+        _subRigidbody = _subPlayerObject.GetComponent<Rigidbody>();
     }
 
     void FixedUpdate()
     {
-        if (MoveCheck)
+        switch (ModeCheck)
         {
-        }
-        else
-        {
+            case true when MainMoveCheck:
+                _mainRigidbody.linearVelocity = new Vector3(_moveDirection.x, _mainRigidbody.linearVelocity.y, _moveDirection.z);
+                break;
+            case false when SubMoveCheck:
+                _subRigidbody.linearVelocity = new Vector3(_moveDirection.x, _subRigidbody.linearVelocity.y, _moveDirection.z);
+                break;
         }
     }
 
@@ -70,11 +86,11 @@ public class PlayerOperationManager : MonoBehaviour
     {
         if (context.phase == InputActionPhase.Performed)
         {
-            _moveAction?.Invoke();
+            
         }
         else if (context.phase == InputActionPhase.Canceled)
         {
-            _cancelMoveAction?.Invoke();
+            
         }
     }
 
@@ -87,7 +103,7 @@ public class PlayerOperationManager : MonoBehaviour
         if (context.phase == InputActionPhase.Started)
         {
             GameObject interactObject;
-            if (MoveCheck)
+            if (ModeCheck)
                 interactObject = InteractObjectCheck(_mainPlayerObject);
             else
                 interactObject = InteractObjectCheck(_subPlayerObject);
@@ -98,7 +114,7 @@ public class PlayerOperationManager : MonoBehaviour
             _subPM._canMove = false;
             Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.42f;
             movePosition.y = transform.position.y;
-            if (MoveCheck)
+            if (ModeCheck)
             {
                 UseLeverSequence(_mainPlayerObject, interactObject, movePosition, _mainPM, _subPM).Play();
             }
@@ -115,11 +131,11 @@ public class PlayerOperationManager : MonoBehaviour
     /// <param name="moveObject">動くプレイヤーオブジェクトを入れる</param>
     /// <param name="interactObject"></param>
     /// <param name="movePosition"></param>
-    /// <param name="mainPM"></param>
-    /// <param name="subPM"></param>
+    /// <param name="mainPm"></param>
+    /// <param name="subPm"></param>
     /// <returns></returns>
-    Sequence UseLeverSequence(GameObject moveObject, GameObject interactObject, Vector3 movePosition, PlayerMove mainPM,
-        PlayerMove subPM)
+    Sequence UseLeverSequence(GameObject moveObject, GameObject interactObject, Vector3 movePosition, PlayerMove mainPm,
+        PlayerMove subPm)
     {
         return DOTween.Sequence()
             .Append(moveObject.transform.DOMove(movePosition, 0.5f))
@@ -131,8 +147,8 @@ public class PlayerOperationManager : MonoBehaviour
                 playerAnimationManager.UseLever();
                 StartCoroutine(DelayAction(5f, () =>
                 {
-                    mainPM._canMove = true;
-                    subPM._canMove = true;
+                    mainPm._canMove = true;
+                    subPm._canMove = true;
                 }));
                 StartCoroutine(TouchLever(interactObject));
             });
@@ -170,9 +186,9 @@ public class PlayerOperationManager : MonoBehaviour
         action?.Invoke();
     }
 
-    IEnumerator TouchLever(GameObject LeverObject)
+    IEnumerator TouchLever(GameObject leverObject)
     {
-        var I = LeverObject.GetComponent<InteractObjectBase>();
+        var I = leverObject.GetComponent<InteractObjectBase>();
         yield return new WaitForSeconds(1.7f);
         I.Interact();
     }
