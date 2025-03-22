@@ -4,6 +4,7 @@ using DG.Tweening;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 public class PlayerOperationManager : MonoBehaviour
 {
@@ -11,37 +12,37 @@ public class PlayerOperationManager : MonoBehaviour
     [SerializeField] private PlayerAnimationManager playerAnimationManager;
     [SerializeField] private InGameManager _inGameManager;
     private InputSystem_Actions _inputSystem;
-    
+
     //----------------メインとサブそれぞれの情報を保存---------------------
     private bool _mainMoving;
     private bool _subMoving;
-    
+
     private Action _mainInteractAction;
     private Action _subInteractAction;
-    
+
     private GameObject _mainPlayerObject;
     private GameObject _subPlayerObject;
-    
-    private PlayerMove _mainPM;
-    private PlayerMove _subPM;
+
+    private PlayerMove _mainPm;
+    private PlayerMove _subPm;
 
     private Rigidbody _mainRigidbody;
     private Rigidbody _subRigidbody;
-    
+
     //-----------------共通の情報を保存---------------------------------
+    [SerializeField] private float _moveSpeed;
     private bool _canMove;
-    private float _moveSpeed;
     private Vector3 _moveDirection;
-    
+
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
-    private  bool ModeCheck => _inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove;
+    private bool ModeCheck =>
+        _inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove;
 
     /// <summary>メインプレイヤーオブジェクトが動けるかを返す</summary>
-    private bool MainMoveCheck => _canMove && _mainMoving && _mainPM._onGround;
-    
+    private bool MainMoveCheck => _canMove && _mainMoving && _mainPm.OnGround;
+
     /// <summary>サブプレイヤーオブジェクトが動けるかを返す</summary>
-    private bool SubMoveCheck => _canMove && _subMoving && _subPM._onGround;
-    //bool mainPlayerCanMove = 
+    private bool SubMoveCheck => _canMove && _subMoving && _subPm.OnGround;
 
     private Collider[] _interactColliders = new Collider[10];
 
@@ -52,10 +53,12 @@ public class PlayerOperationManager : MonoBehaviour
 
     private void Start()
     {
+        _canMove = true;
+
         _inputSystem = new InputSystem_Actions();
         _inputSystem.Player.Move.performed += OnMoveInput;
         _inputSystem.Player.Move.canceled += OnMoveInput;
-        _inputSystem.Player.Interact.performed += OnInteractInput;
+        _inputSystem.Player.Interact.started += OnInteractInput;
         _inputSystem.Enable();
     }
 
@@ -66,25 +69,32 @@ public class PlayerOperationManager : MonoBehaviour
     {
         _mainPlayerObject = playerAnimationManager._mainPlayerAnimator.gameObject;
         _subPlayerObject = playerAnimationManager._subPlayerAnimator.gameObject;
-        _mainPM = _mainPlayerObject.GetComponent<PlayerMove>();
-        _subPM = _subPlayerObject.GetComponent<PlayerMove>();
+        _mainPm = _mainPlayerObject.GetComponent<PlayerMove>();
+        _subPm = _subPlayerObject.GetComponent<PlayerMove>();
         _mainRigidbody = _mainPlayerObject.GetComponent<Rigidbody>();
         _subRigidbody = _subPlayerObject.GetComponent<Rigidbody>();
     }
 
     void FixedUpdate()
     {
+        if (!_inGameManager.LoadedFlag) return;
         switch (ModeCheck)
         {
             case true when MainMoveCheck:
-                _mainRigidbody.linearVelocity = new Vector3(_moveDirection.x, _mainRigidbody.linearVelocity.y, _moveDirection.z);
+                _mainRigidbody.linearVelocity =
+                    new Vector3(_moveDirection.x, _mainRigidbody.linearVelocity.y, _moveDirection.z);
                 break;
             case false when SubMoveCheck:
-                _subRigidbody.linearVelocity = new Vector3(_moveDirection.x, _subRigidbody.linearVelocity.y, _moveDirection.z);
+                _subRigidbody.linearVelocity =
+                    new Vector3(_moveDirection.x, _subRigidbody.linearVelocity.y, _moveDirection.z);
                 break;
         }
     }
 
+    /// <summary>
+    /// 移動のデリゲートに登録するメソッド
+    /// </summary>
+    /// <param name="context"></param>
     void OnMoveInput(InputAction.CallbackContext context)
     {
         if (context.phase == InputActionPhase.Performed)
@@ -93,9 +103,10 @@ public class PlayerOperationManager : MonoBehaviour
             Vector2 input = context.ReadValue<Vector2>();
             float magnitude = input.magnitude;
             _moveDirection = new Vector3(input.x, 0, input.y) * _moveSpeed;
-            if(ModeCheck) _mainMoving = true;
+            if (ModeCheck) _mainMoving = true;
             else _subMoving = true;
-            playerAnimationManager.MoveAnimation(input.y > 0,magnitude > 0.5f,input.x + 1,Mathf.Max(magnitude * 0.8f, 0.5f));
+            playerAnimationManager.MoveAnimation(input.y > 0, magnitude > 0.5f, input.x + 1,
+                Mathf.Max(magnitude * 0.8f, 0.5f));
         }
         else if (context.phase == InputActionPhase.Canceled)
         {
@@ -118,20 +129,20 @@ public class PlayerOperationManager : MonoBehaviour
                 interactObject = InteractObjectCheck(_mainPlayerObject);
             else
                 interactObject = InteractObjectCheck(_subPlayerObject);
-            
+
             if (interactObject == null) return;
 
-            _mainPM._canMove = false;
-            _subPM._canMove = false;
+            _canMove = false;
+            _canMove = false;
             Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.42f;
             movePosition.y = transform.position.y;
             if (ModeCheck)
             {
-                UseLeverSequence(_mainPlayerObject, interactObject, movePosition, _mainPM, _subPM).Play();
+                UseLeverSequence(_mainPlayerObject, interactObject, movePosition, _mainPm, _subPm).Play();
             }
             else
             {
-                UseLeverSequence(_subPlayerObject, interactObject, movePosition, _mainPM, _subPM);
+                UseLeverSequence(_subPlayerObject, interactObject, movePosition, _mainPm, _subPm);
             }
         }
     }
@@ -156,11 +167,7 @@ public class PlayerOperationManager : MonoBehaviour
                 //----------------ここに左右を見極めるスクリプトを挟む----------------------
                 //---------------------------------------------------------------------
                 playerAnimationManager.UseLever();
-                StartCoroutine(DelayAction(5f, () =>
-                {
-                    mainPm._canMove = true;
-                    subPm._canMove = true;
-                }));
+                StartCoroutine(DelayAction(5f, () => { _canMove = true; }));
                 StartCoroutine(TouchLever(interactObject));
             });
     }
@@ -178,7 +185,7 @@ public class PlayerOperationManager : MonoBehaviour
             checkBaseObject.transform.position + checkBaseObject.transform.forward * 1.05f + Vector3.up
             , 1.2f
             , _interactColliders);
-        
+
         foreach (var col in _interactColliders)
         {
             if (col == null)
@@ -188,6 +195,7 @@ public class PlayerOperationManager : MonoBehaviour
                 return col.gameObject;
             }
         }
+
         return null;
     }
 
