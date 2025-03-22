@@ -64,42 +64,6 @@ public class PlayerMove : MonoBehaviour
             _rigidBody.linearVelocity = new Vector3(MoveDirection.x, _rigidBody.linearVelocity.y, MoveDirection.z);
         }
     }
-
-
-    //仮想パッドを動かしたときに呼び出される。
-    private void OnMove(InputAction.CallbackContext context)
-    {
-        _moving = true;
-        Vector2 input = context.ReadValue<Vector2>();
-        float magnitude = input.magnitude;
-        float lrWeight = input.x + 1;
-        if (MoveMode)
-            MoveDirection = new Vector3(input.x, 0, input.y) * _moveSpeed;
-        //前後移動で別のアニメーションにし、左右移動アニメーションとブレンドする
-        if (input.y > 0)
-        {
-            _animator.SetBool(Back, false);
-            _animator.SetBool(Forward, true);
-        }
-        else
-        {
-            _animator.SetBool(Forward, false);
-            _animator.SetBool(Back, true);
-        }
-
-        _animator.SetFloat(BlendLr, lrWeight);
-        //走っているか歩いているか
-        if (magnitude < 0.5f)
-        {
-            _animator.SetBool(Run, false);
-            _animator.SetFloat(Speed, Mathf.Max(magnitude * _walkBaseAnimationSpeed, 0.5f));
-        }
-        else
-        {
-            _animator.SetBool(Run, true);
-            _animator.SetFloat(Speed, magnitude * _runBaseAnimationSpeed);
-        }
-    }
     
     void Interacted()
     {

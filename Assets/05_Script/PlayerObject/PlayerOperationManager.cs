@@ -92,11 +92,10 @@ public class PlayerOperationManager : MonoBehaviour
             _mainMoving = true;
             Vector2 input = context.ReadValue<Vector2>();
             float magnitude = input.magnitude;
-            float lrWeight = input.x + 1;
             _moveDirection = new Vector3(input.x, 0, input.y) * _moveSpeed;
             if(ModeCheck) _mainMoving = true;
             else _subMoving = true;
-            playerAnimationManager.MoveAnimation(input.y > 0);
+            playerAnimationManager.MoveAnimation(input.y > 0,magnitude > 0.5f,input.x + 1,Mathf.Max(magnitude * 0.8f, 0.5f));
         }
         else if (context.phase == InputActionPhase.Canceled)
         {
