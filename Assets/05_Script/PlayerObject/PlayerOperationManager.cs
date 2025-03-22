@@ -4,6 +4,7 @@ using DG.Tweening;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Composites;
 using UnityEngine.Rendering.Universal;
 
 public class PlayerOperationManager : MonoBehaviour
@@ -82,11 +83,13 @@ public class PlayerOperationManager : MonoBehaviour
         {
             case true when MainMoveCheck:
                 _mainRigidbody.linearVelocity =
-                    new Vector3(_moveDirection.x, _mainRigidbody.linearVelocity.y, _moveDirection.z);
+                    _mainRigidbody.transform.TransformDirection(new Vector3(_moveDirection.x,
+                        _mainRigidbody.linearVelocity.y, _moveDirection.z));
                 break;
             case false when SubMoveCheck:
                 _subRigidbody.linearVelocity =
-                    new Vector3(_moveDirection.x, _subRigidbody.linearVelocity.y, _moveDirection.z);
+                    _subRigidbody.transform.TransformDirection(new Vector3(_moveDirection.x, 
+                        _subRigidbody.linearVelocity.y, _moveDirection.z));
                 break;
         }
     }
@@ -135,14 +138,14 @@ public class PlayerOperationManager : MonoBehaviour
             _canMove = false;
             _canMove = false;
             Vector3 movePosition = interactObject.transform.position + interactObject.transform.forward * -0.42f;
-            movePosition.y = transform.position.y;
+            movePosition.y = ModeCheck ? _mainPlayerObject.transform.position.y : _subPlayerObject.transform.position.y;
             if (ModeCheck)
             {
                 UseLeverSequence(_mainPlayerObject, interactObject, movePosition, _mainPm, _subPm).Play();
             }
             else
             {
-                UseLeverSequence(_subPlayerObject, interactObject, movePosition, _mainPm, _subPm);
+                UseLeverSequence(_subPlayerObject, interactObject, movePosition, _mainPm, _subPm).Play();
             }
         }
     }
@@ -159,9 +162,13 @@ public class PlayerOperationManager : MonoBehaviour
     Sequence UseLeverSequence(GameObject moveObject, GameObject interactObject, Vector3 movePosition, PlayerMove mainPm,
         PlayerMove subPm)
     {
+        var xzMovePos = new Vector3(movePosition.x, 0, movePosition.z);
+        var xzInteractPos = new Vector3(interactObject.transform.position.x, 0, interactObject.transform.position.z);
+        var direction = xzInteractPos - xzMovePos;
+        var angle = new Vector3(0, Mathf.Atan2(direction.z, direction.x) * Mathf.Rad2Deg - 90, 0);
         return DOTween.Sequence()
             .Append(moveObject.transform.DOMove(movePosition, 0.5f))
-            .Append(moveObject.transform.DORotate(movePosition - moveObject.transform.position, 0.2f))
+            .Join(moveObject.transform.DORotate(angle, 0.2f))
             .OnComplete(() =>
             {
                 //----------------ここに左右を見極めるスクリプトを挟む----------------------
