@@ -6,20 +6,9 @@ using UnityEngine.InputSystem;
 
 public class PlayerOperationManager : MonoBehaviour
 {
-    private static readonly int Forward = Animator.StringToHash("Forward");
-    private static readonly int Back = Animator.StringToHash("Back");
-    private static readonly int Run = Animator.StringToHash("Run");
-    private static readonly int Jump = Animator.StringToHash("Jump");
-    private static readonly int BlendLr = Animator.StringToHash("BlendLR");
-    private static readonly int Speed = Animator.StringToHash("Speed");
-    private static readonly int OnGround = Animator.StringToHash("OnGround");
-    private static readonly int UseLeverR = Animator.StringToHash("UseLeverR");
-    private static readonly int UseLeverL = Animator.StringToHash("UseLeverL");
+    [SerializeField] private PlayerAnimationManager playerAnimationManager;
     [SerializeField] private InGameManager _inGameManager;
     private InputSystem_Actions _inputSystem;
-    
-    public Animator _mainPlayerAnimator;
-    public Animator _subPlayerAnimator;
         
     /// <summary>移動に使う</summary>
     private Action _moveAction;
@@ -54,8 +43,8 @@ public class PlayerOperationManager : MonoBehaviour
     {
         if (context.phase == InputActionPhase.Started)
         {
-            var mainP = _mainPlayerAnimator.gameObject;
-            var subP = _subPlayerAnimator.gameObject;
+            var mainP = playerAnimationManager._mainPlayerAnimator.gameObject;
+            var subP = playerAnimationManager._subPlayerAnimator.gameObject;
             var mainPM = mainP.GetComponent<PlayerMove>();
             var subPM = subP.GetComponent<PlayerMove>();
             if (_inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove)
@@ -87,6 +76,7 @@ public class PlayerOperationManager : MonoBehaviour
                 sequence.Append(transform.DORotate(movePosition - transform.position, 0.2f));
                 sequence.OnComplete(() =>
                 {
+                    playerAnimationManager
                     _mainPlayerAnimator.SetTrigger(UseLeverR);
                     _subPlayerAnimator.SetTrigger(UseLeverR);
                     _mainPlayerAnimator.SetTrigger(UseLeverR);
