@@ -39,13 +39,13 @@ public class PlayerOperationManager : MonoBehaviour
 
     /// <summary>タップ中かどうかを保存</summary>
     [SerializeField] private Vector2 _splitCenter;
-    private bool _tapCheck;
-    private float _maxMagnitude;
-    private float _timer;
-    private Vector2 _defaultDisplayDirection;
-    private Vector2 _defaultTapDirection;
+    [SerializeField] InputAction _action;
+    Material _splitMaterial;//
+    private bool _tapCheck;//
+    private float _maxMagnitude;//
+    private float _timer;//
     private Vector2? _tapPosition;
-    private SwipeMode _swipeMode;
+    private SwipeMode _swipeMode;//
 
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
     private bool ModeCheck =>
@@ -61,6 +61,8 @@ public class PlayerOperationManager : MonoBehaviour
 
     void Awake()
     {
+        _swipeMode = SwipeMode.None;
+        _splitMaterial = _splitForCross.material;
         _inGameManager.LoadedStart += LoadedStart;
     }
 
@@ -74,14 +76,17 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem.Player.Look.started += OnLookInput;
         _inputSystem.Player.Tap.started += _ =>
         {
+            Debug.Log("Tap");
             _tapPosition = null;
             _tapCheck = true;
             _maxMagnitude = 0;
-            _swipeMode = SwipeMode.SwipeToChange;
+            _swipeMode = SwipeMode.SwipeToLook;
         };
         _inputSystem.Player.Look.performed += OnLookInput;
         _inputSystem.Player.Tap.canceled += _ =>
         {
+            Debug.Log("Cancel");
+            _tapPosition = null;
             _tapCheck = false;
             _swipeMode = SwipeMode.None;
         };
@@ -105,6 +110,7 @@ public class PlayerOperationManager : MonoBehaviour
 
     void Update()
     {
+        if (!_inGameManager.LoadedFlag) return;
         if (_swipeMode == SwipeMode.None) return;
         
         if (_maxMagnitude < 0.5f && _timer > 0.8f)
@@ -167,8 +173,6 @@ public class PlayerOperationManager : MonoBehaviour
         if (_tapPosition == null)
         {
             _tapPosition = pos;
-            _defaultDisplayDirection = _splitForCross.material.GetVector(DirectionVector);
-            _defaultTapDirection = _splitCenter - _tapPosition.Value;
         }
         _maxMagnitude = Math.Max(_maxMagnitude, (pos - _tapPosition.Value).magnitude);
         switch (_swipeMode)
@@ -177,11 +181,9 @@ public class PlayerOperationManager : MonoBehaviour
                 var theta = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
                 break;
             case SwipeMode.SwipeToLook:
-                _mainRigidbody.transform.eulerAngles = new Vector3(0, 0, pos.y - _tapPosition.Value.x);
                 break;
         }
     }
-    
     
 
     /// <summary>
