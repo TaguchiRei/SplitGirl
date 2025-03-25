@@ -4,14 +4,16 @@ using DG.Tweening;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Composites;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.UI;
 
 public class PlayerOperationManager : MonoBehaviour
 {
+    private static readonly int DirectionVector = Shader.PropertyToID("DirectionVector");
+
     //----------------各マネージャー等の情報を保存------------------------
-    [SerializeField] private PlayerAnimationManager playerAnimationManager;
+    [SerializeField] private PlayerAnimationManager _playerAnimationManager;
     [SerializeField] private InGameManager _inGameManager;
+    [SerializeField] private Image _splitForCross;
     private InputSystem_Actions _inputSystem;
 
     //----------------メインとサブそれぞれの情報を保存---------------------
@@ -34,14 +36,16 @@ public class PlayerOperationManager : MonoBehaviour
     [SerializeField] private float _moveSpeed;
     private bool _canMove;
     private Vector3 _moveDirection;
-    
+
     /// <summary>タップ中かどうかを保存</summary>
-    private bool _tapMode;
-    private bool _savePos;
-    private float _totalMagnitude;
-    private float _modeTimer;
-    private Vector3 _tapPosition; 
-    
+    [SerializeField] private Vector2 _splitCenter;
+    private bool _tapCheck;
+    private float _maxMagnitude;
+    private float _timer;
+    private Vector2 _defaultDisplayDirection;
+    private Vector2 _defaultTapDirection;
+    private Vector2? _tapPosition;
+    private SwipeMode _swipeMode;
 
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
     private bool ModeCheck =>
@@ -62,7 +66,6 @@ public class PlayerOperationManager : MonoBehaviour
 
     private void Start()
     {
-        _totalMagnitude = 0f;
         _canMove = true;
 
         _inputSystem = new InputSystem_Actions();
@@ -71,17 +74,16 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem.Player.Look.started += OnLookInput;
         _inputSystem.Player.Tap.started += _ =>
         {
-            _totalMagnitude = 0;
-            Debug.Log("Interact");
-            _modeTimer = Time.time + 0.5f;
-            _savePos = true;
-            _tapMode = true;
+            _tapPosition = null;
+            _tapCheck = true;
+            _maxMagnitude = 0;
+            _swipeMode = SwipeMode.SwipeToChange;
         };
         _inputSystem.Player.Look.performed += OnLookInput;
         _inputSystem.Player.Tap.canceled += _ =>
         {
-            Debug.Log("Cancel");
-            _tapMode = false;
+            _tapCheck = false;
+            _swipeMode = SwipeMode.None;
         };
         
         _inputSystem.Player.Interact.started += OnInteractInput;
@@ -93,8 +95,8 @@ public class PlayerOperationManager : MonoBehaviour
     /// </summary>
     void LoadedStart()
     {
-        _mainPlayerObject = playerAnimationManager._mainPlayerAnimator.gameObject;
-        _subPlayerObject = playerAnimationManager._subPlayerAnimator.gameObject;
+        _mainPlayerObject = _playerAnimationManager._mainPlayerAnimator.gameObject;
+        _subPlayerObject = _playerAnimationManager._subPlayerAnimator.gameObject;
         _mainPm = _mainPlayerObject.GetComponent<PlayerMove>();
         _subPm = _subPlayerObject.GetComponent<PlayerMove>();
         _mainRigidbody = _mainPlayerObject.GetComponent<Rigidbody>();
@@ -103,9 +105,11 @@ public class PlayerOperationManager : MonoBehaviour
 
     void Update()
     {
-        if (_totalMagnitude < 1 && Time.time > _modeTimer)
+        if (_swipeMode == SwipeMode.None) return;
+        
+        if (_maxMagnitude < 0.5f && _timer > 0.8f)
         {
-            
+            _swipeMode = SwipeMode.SwipeToChange;
         }
     }
 
@@ -141,14 +145,14 @@ public class PlayerOperationManager : MonoBehaviour
             _moveDirection = new Vector3(input.x, 0, input.y) * _moveSpeed;
             if (ModeCheck) _mainMoving = true;
             else _subMoving = true;
-            playerAnimationManager.MoveAnimation(input.y > 0, magnitude > 0.5f, input.x + 1,
+            _playerAnimationManager.MoveAnimation(input.y > 0, magnitude > 0.5f, input.x + 1,
                 Mathf.Max(magnitude * 0.8f, 0.5f));
         }
         else if (context.phase == InputActionPhase.Canceled)
         {
             _mainMoving = false;
             _subMoving = false;
-            playerAnimationManager.CancelMoveAnimation();
+            _playerAnimationManager.CancelMoveAnimation();
         }
     }
 
@@ -158,11 +162,24 @@ public class PlayerOperationManager : MonoBehaviour
     /// <param name="context"></param>
     void OnLookInput(InputAction.CallbackContext context)
     {
-        if(!_tapMode) return;
-        var pos = context.ReadValue<Vector2>();
-        if (_savePos)
+        if (!_tapCheck) return;
+        var pos = context.ReadValue<Vector2>() - new Vector2((float)Screen.width / 2, (float)Screen.height / 2);
+        if (_tapPosition == null)
+        {
             _tapPosition = pos;
-        _totalMagnitude += pos.magnitude;
+            _defaultDisplayDirection = _splitForCross.material.GetVector(DirectionVector);
+            _defaultTapDirection = _splitCenter - _tapPosition.Value;
+        }
+        _maxMagnitude = Math.Max(_maxMagnitude, (pos - _tapPosition.Value).magnitude);
+        switch (_swipeMode)
+        {
+            case SwipeMode.SwipeToChange:
+                var theta = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
+                break;
+            case SwipeMode.SwipeToLook:
+                _mainRigidbody.transform.eulerAngles = new Vector3(0, 0, pos.y - _tapPosition.Value.x);
+                break;
+        }
     }
     
     
@@ -221,7 +238,7 @@ public class PlayerOperationManager : MonoBehaviour
             {
                 //----------------ここに左右を見極めるスクリプトを挟む----------------------
                 //---------------------------------------------------------------------
-                playerAnimationManager.UseLever();
+                _playerAnimationManager.UseLever();
                 StartCoroutine(DelayAction(5f, () => { _canMove = true; }));
                 StartCoroutine(TouchLever(interactObject));
             });
