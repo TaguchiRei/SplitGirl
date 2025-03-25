@@ -37,7 +37,9 @@ public class PlayerOperationManager : MonoBehaviour
     
     /// <summary>タップ中かどうかを保存</summary>
     private bool _tapMode;
-    private float _totalMagnitude; 
+    private bool _savePos;
+    private float _totalMagnitude;
+    private float _modeTimer;
     private Vector3 _tapPosition; 
     
 
@@ -66,21 +68,25 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem = new InputSystem_Actions();
         _inputSystem.Player.Move.performed += OnMoveInput;
         _inputSystem.Player.Move.canceled += OnMoveInput;
-        _inputSystem.Player.Look.started += OnStartLookInput;
-        _inputSystem.Player.Look.started += _ =>
+        _inputSystem.Player.Look.started += OnLookInput;
+        _inputSystem.Player.Tap.started += _ =>
         {
+            _totalMagnitude = 0;
             Debug.Log("Interact");
+            _modeTimer = Time.time + 0.5f;
+            _savePos = true;
             _tapMode = true;
-            _totalMagnitude = 0f;
         };
-        _inputSystem.Player.Look.performed += OnStartLookInput;
-        _inputSystem.Player.Look.canceled += _ => _tapMode = false;
+        _inputSystem.Player.Look.performed += OnLookInput;
+        _inputSystem.Player.Tap.canceled += _ =>
+        {
+            Debug.Log("Cancel");
+            _tapMode = false;
+        };
         
         _inputSystem.Player.Interact.started += OnInteractInput;
         _inputSystem.Enable();
     }
-    
-    
 
     /// <summary>
     /// サブシーンがロードされた直後に発火するメソッド
@@ -94,7 +100,14 @@ public class PlayerOperationManager : MonoBehaviour
         _mainRigidbody = _mainPlayerObject.GetComponent<Rigidbody>();
         _subRigidbody = _subPlayerObject.GetComponent<Rigidbody>();
     }
-    
+
+    void Update()
+    {
+        if (_totalMagnitude < 1 && Time.time > _modeTimer)
+        {
+            
+        }
+    }
 
     void FixedUpdate()
     {
@@ -140,12 +153,16 @@ public class PlayerOperationManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 視点操作 
+    /// 視点操作
     /// </summary>
     /// <param name="context"></param>
-    void OnStartLookInput(InputAction.CallbackContext context)
+    void OnLookInput(InputAction.CallbackContext context)
     {
-        _totalMagnitude = 0;
+        if(!_tapMode) return;
+        var pos = context.ReadValue<Vector2>();
+        if (_savePos)
+            _tapPosition = pos;
+        _totalMagnitude += pos.magnitude;
     }
     
     
@@ -237,6 +254,13 @@ public class PlayerOperationManager : MonoBehaviour
         return null;
     }
 
+    enum SwipeMode
+    {
+        None,
+        SwipeToLook,
+        SwipeToChange
+    }
+
     IEnumerator DelayAction(float delay, Action action = null)
     {
         yield return new WaitForSeconds(delay);
@@ -248,13 +272,5 @@ public class PlayerOperationManager : MonoBehaviour
         var I = leverObject.GetComponent<InteractObjectBase>();
         yield return new WaitForSeconds(1.7f);
         I.Interact();
-    }
-
-    public void SetMoveAction(Action moveAction)
-    {
-    }
-
-    public void SetInteractAction(Action interactAction)
-    {
     }
 }
