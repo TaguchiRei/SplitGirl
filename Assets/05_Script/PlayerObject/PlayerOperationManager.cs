@@ -4,6 +4,7 @@ using DG.Tweening;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class PlayerOperationManager : MonoBehaviour
@@ -38,14 +39,17 @@ public class PlayerOperationManager : MonoBehaviour
     private Vector3 _moveDirection;
 
     /// <summary>タップ中かどうかを保存</summary>
-    [SerializeField] private Vector2 _splitCenter;
-    [SerializeField] InputAction _action;
-    Material _splitMaterial;//
+    [SerializeField] private Vector2 _splitCenter; 
+    [SerializeField] InputAction _primaryTouchAction;
+    [SerializeField] Material _splitMaterial;//
     private bool _tapCheck;//
     private float _maxMagnitude;//
     private float _timer;//
     private Vector2? _tapPosition;
     private SwipeMode _swipeMode;//
+    private Vector2 _changeSize;
+    private float _originAngle;//
+    private Vector2 _directionVector;
 
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
     private bool ModeCheck =>
@@ -62,7 +66,12 @@ public class PlayerOperationManager : MonoBehaviour
     void Awake()
     {
         _swipeMode = SwipeMode.None;
-        _splitMaterial = _splitForCross.material;
+        _directionVector = Vector2.one;
+        _splitMaterial.SetVector(DirectionVector, _directionVector);
+        _splitForCross.material = _splitMaterial;
+        
+        _splitForCross.canvasRenderer.SetMaterial(_splitMaterial);
+        
         _inGameManager.LoadedStart += LoadedStart;
     }
 
@@ -76,23 +85,25 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem.Player.Look.started += OnLookInput;
         _inputSystem.Player.Tap.started += _ =>
         {
-            Debug.Log("Tap");
             _tapPosition = null;
             _tapCheck = true;
             _maxMagnitude = 0;
+            _timer = 0;
             _swipeMode = SwipeMode.SwipeToLook;
         };
         _inputSystem.Player.Look.performed += OnLookInput;
         _inputSystem.Player.Tap.canceled += _ =>
         {
-            Debug.Log("Cancel");
             _tapPosition = null;
             _tapCheck = false;
+            _timer = 0;
             _swipeMode = SwipeMode.None;
         };
         
         _inputSystem.Player.Interact.started += OnInteractInput;
         _inputSystem.Enable();
+        _primaryTouchAction.performed += v => _changeSize = v.ReadValue<Vector2>();
+        _primaryTouchAction.Enable();
     }
 
     /// <summary>
@@ -110,12 +121,16 @@ public class PlayerOperationManager : MonoBehaviour
 
     void Update()
     {
-        if (!_inGameManager.LoadedFlag) return;
-        if (_swipeMode == SwipeMode.None) return;
+        if (!_inGameManager.LoadedFlag ||_swipeMode == SwipeMode.None) return;
         
-        if (_maxMagnitude < 0.5f && _timer > 0.8f)
+        if (_maxMagnitude < 0.5f && _timer > 0.5f)
         {
+            Debug.Log("Change");
             _swipeMode = SwipeMode.SwipeToChange;
+        }
+        else
+        {
+            _timer += Time.deltaTime;
         }
     }
 
@@ -173,14 +188,21 @@ public class PlayerOperationManager : MonoBehaviour
         if (_tapPosition == null)
         {
             _tapPosition = pos;
+            _originAngle = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
         }
         _maxMagnitude = Math.Max(_maxMagnitude, (pos - _tapPosition.Value).magnitude);
         switch (_swipeMode)
         {
             case SwipeMode.SwipeToChange:
                 var theta = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
+                theta -= _originAngle;
+                
                 break;
             case SwipeMode.SwipeToLook:
+                if(ModeCheck)
+                    _mainRigidbody.transform.eulerAngles += new Vector3(0, _changeSize.x / 3, 0);
+                else
+                    _subRigidbody.transform.eulerAngles += new Vector3(0, _changeSize.x / 3, 0);
                 break;
         }
     }
