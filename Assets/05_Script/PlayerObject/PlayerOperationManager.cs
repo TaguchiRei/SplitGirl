@@ -34,6 +34,12 @@ public class PlayerOperationManager : MonoBehaviour
     [SerializeField] private float _moveSpeed;
     private bool _canMove;
     private Vector3 _moveDirection;
+    
+    /// <summary>タップ中かどうかを保存</summary>
+    private bool _tapMode;
+    private float _totalMagnitude; 
+    private Vector3 _tapPosition; 
+    
 
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
     private bool ModeCheck =>
@@ -54,14 +60,27 @@ public class PlayerOperationManager : MonoBehaviour
 
     private void Start()
     {
+        _totalMagnitude = 0f;
         _canMove = true;
 
         _inputSystem = new InputSystem_Actions();
         _inputSystem.Player.Move.performed += OnMoveInput;
         _inputSystem.Player.Move.canceled += OnMoveInput;
+        _inputSystem.Player.Look.started += OnStartLookInput;
+        _inputSystem.Player.Look.started += _ =>
+        {
+            Debug.Log("Interact");
+            _tapMode = true;
+            _totalMagnitude = 0f;
+        };
+        _inputSystem.Player.Look.performed += OnStartLookInput;
+        _inputSystem.Player.Look.canceled += _ => _tapMode = false;
+        
         _inputSystem.Player.Interact.started += OnInteractInput;
         _inputSystem.Enable();
     }
+    
+    
 
     /// <summary>
     /// サブシーンがロードされた直後に発火するメソッド
@@ -75,6 +94,7 @@ public class PlayerOperationManager : MonoBehaviour
         _mainRigidbody = _mainPlayerObject.GetComponent<Rigidbody>();
         _subRigidbody = _subPlayerObject.GetComponent<Rigidbody>();
     }
+    
 
     void FixedUpdate()
     {
@@ -118,6 +138,17 @@ public class PlayerOperationManager : MonoBehaviour
             playerAnimationManager.CancelMoveAnimation();
         }
     }
+
+    /// <summary>
+    /// 視点操作 
+    /// </summary>
+    /// <param name="context"></param>
+    void OnStartLookInput(InputAction.CallbackContext context)
+    {
+        _totalMagnitude = 0;
+    }
+    
+    
 
     /// <summary>
     /// インタラクト時に起動するメソッド
