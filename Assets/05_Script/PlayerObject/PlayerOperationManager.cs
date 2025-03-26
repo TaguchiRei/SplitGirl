@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 public class PlayerOperationManager : MonoBehaviour
 {
-    private static readonly int DirectionVector = Shader.PropertyToID("DirectionVector");
+    private static readonly int DirectionVector = Shader.PropertyToID("_DirectionVector");
 
     //----------------各マネージャー等の情報を保存------------------------
     [SerializeField] private PlayerAnimationManager _playerAnimationManager;
@@ -67,11 +67,10 @@ public class PlayerOperationManager : MonoBehaviour
     {
         _swipeMode = SwipeMode.None;
         _directionVector = Vector2.one;
-        _splitMaterial.SetVector(DirectionVector, _directionVector);
-        _splitForCross.material = _splitMaterial;
         
-        _splitForCross.canvasRenderer.SetMaterial(_splitMaterial);
-        
+        Material mat = Instantiate(_splitForCross.material);
+        mat.SetVector(DirectionVector, _directionVector);
+        _splitForCross.material = mat;
         _inGameManager.LoadedStart += LoadedStart;
     }
 
