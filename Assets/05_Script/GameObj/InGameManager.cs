@@ -83,10 +83,10 @@ public class InGameManager : MonoBehaviour
         float crossProduct = DirectionVector.x * screenPos.y - DirectionVector.y * screenPos.x;
         if (main)
         {
-            return crossProduct > _inScreenStandards;
+            return crossProduct < _inScreenStandards;
         }
 
-        return crossProduct < _inScreenStandards;
+        return crossProduct > _inScreenStandards;
     }
     
     public enum CameraMode

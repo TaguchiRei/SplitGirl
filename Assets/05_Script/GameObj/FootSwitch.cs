@@ -1,56 +1,30 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class FootSwitch : InteractObjectBase
 {
-    private Vector3 _startPos;
-
-    void Start()
-    {
-        _startPos = transform.position;
-    }
-
     public override void Interact()
     {
-        transform.position = new Vector3(_startPos.x, _startPos.y - 0.3f, _startPos.z);
         interactObject.Interact();
     }
 
     private void CancelInteract()
     {
-        transform.position = _startPos;
         interactObject.Cancel();
     }
-    
 
     private void OnCollisionStay(Collision other)
     {
-        Vector3 pos = Vector3.zero;
-        bool main = false;
-        foreach (var obj in other.contacts)
+        Vector3 pos = other.contacts[0].point;
+        bool main = other.gameObject.CompareTag("MainPlayer");
+        if (InGameManager.Instance.CheckInScreen(main, pos))
         {
-            if (obj.thisCollider.gameObject.CompareTag("MainPlayer"))
-            {
-                pos = obj.point;
-                main = true;
-            }
-            else if(obj.thisCollider.gameObject.CompareTag("SubPlayer"))
-            {
-                pos = obj.point;
-                main = false;
-            }
+            Interact();
         }
-
-        if (pos != Vector3.zero)
+        else
         {
-            if (InGameManager.Instance.CheckInScreen(main, pos))
-            {
-                Interact();
-            }
-            else
-            {
-                CancelInteract();
-            }
+            CancelInteract();
         }
     }
 
