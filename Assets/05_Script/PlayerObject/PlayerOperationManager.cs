@@ -4,7 +4,6 @@ using DG.Tweening;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class PlayerOperationManager : MonoBehaviour
@@ -43,7 +42,6 @@ public class PlayerOperationManager : MonoBehaviour
     [SerializeField] private Vector2 _splitCenter;
 
     [SerializeField] InputAction _primaryTouchAction;
-    [SerializeField] Material _splitMaterial; //
 
     private bool _tapCheck; //
     private float _maxMagnitude; //
@@ -75,9 +73,7 @@ public class PlayerOperationManager : MonoBehaviour
     {
         _swipeMode = SwipeMode.None;
         _inGameManager.DirectionVector = Vector2.one;
-        Material mat = Instantiate(_splitForCross.material);
-        mat.SetVector(DirectionVector, _inGameManager.DirectionVector);
-        _splitForCross.material = mat;
+        _splitForCross.material.SetVector(DirectionVector, _inGameManager.DirectionVector);
         _inGameManager.LoadedStart += LoadedStart;
     }
 
@@ -105,10 +101,13 @@ public class PlayerOperationManager : MonoBehaviour
             _tapCheck = false;
             _timer = 0;
             _swipeMode = SwipeMode.None;
-            ChangeMaterialShowLine(0);
+            _splitForCross.material.SetFloat(ShowLine, 0);
         };
-
         _inputSystem.Player.Interact.started += OnInteractInput;
+        _inputSystem.Player.ModeChange.started += _ =>
+        {
+            _inGameManager.ModeChange();
+        };
         _inputSystem.Enable();
         _primaryTouchAction.performed += v => _changeTapPos = v.ReadValue<Vector2>();
         _primaryTouchAction.Enable();
@@ -134,7 +133,7 @@ public class PlayerOperationManager : MonoBehaviour
         if (_maxMagnitude < 0.5f && _timer > 0.2f)
         {
             _swipeMode = SwipeMode.SwipeToChange;
-            ChangeMaterialShowLine(1);
+            _splitForCross.material.SetFloat(ShowLine, 1);
         }
         else
         {
@@ -208,7 +207,7 @@ public class PlayerOperationManager : MonoBehaviour
                 var deltaAngle = Mathf.DeltaAngle(_tapOriginAngle, currentAngle);
                 var modAngle = _directionAngle + deltaAngle;
                 _modifiedVector = new Vector2(Mathf.Cos(modAngle * Mathf.Deg2Rad), Mathf.Sin(modAngle * Mathf.Deg2Rad));
-                ChangeMaterialDirection(_modifiedVector);
+                _splitForCross.material.SetVector(DirectionVector, _modifiedVector);
                 break;
 
             case SwipeMode.SwipeToLook:
@@ -274,6 +273,7 @@ public class PlayerOperationManager : MonoBehaviour
             .OnComplete(() =>
             {
                 //----------------ここに左右を見極めるスクリプトを挟む----------------------
+                
                 //---------------------------------------------------------------------
                 _playerAnimationManager.UseLever();
                 StartCoroutine(DelayAction(5f, () => { _canMove = true; }));
@@ -306,20 +306,6 @@ public class PlayerOperationManager : MonoBehaviour
         }
 
         return null;
-    }
-
-    private void ChangeMaterialDirection(Vector2 direction)
-    {
-        Material mat = Instantiate(_splitForCross.material);
-        mat.SetVector(DirectionVector, direction);
-        _splitForCross.material = mat;
-    }
-
-    private void ChangeMaterialShowLine(int i)
-    {
-        Material mat = Instantiate(_splitForCross.material);
-        mat.SetFloat(ShowLine, i);
-        _splitForCross.material = mat;
     }
 
     enum SwipeMode

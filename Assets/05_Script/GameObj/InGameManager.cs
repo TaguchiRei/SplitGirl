@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Cysharp.Threading.Tasks;
+using UnityEditor;
 
 public class InGameManager : MonoBehaviour
 {
@@ -87,6 +88,14 @@ public class InGameManager : MonoBehaviour
         }
 
         return crossProduct > _inScreenStandards;
+    }
+
+    public void ModeChange()
+    {
+        if(cameraMode != CameraMode.SubOnly)
+            cameraMode++;
+        else
+            cameraMode = CameraMode.MainCameraMove;
     }
     
     public enum CameraMode
