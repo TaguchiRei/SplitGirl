@@ -53,7 +53,7 @@ public class PlayerOperationManager : MonoBehaviour
     private SwipeMode _swipeMode; //スワイプモードかチェンジモードか
     private Vector2 _changeTapPos; //直前のタップ位置の変化量
 
-    private Vector2 _directionVector; //現在の角度ベクトル
+
     private float _directionAngle; //現在の角度
     private Vector2 _modifiedVector; //変更後角度ベクトル
     private float _tapOriginAngle; //タップ位置のデフォルト角度
@@ -74,9 +74,9 @@ public class PlayerOperationManager : MonoBehaviour
     void Awake()
     {
         _swipeMode = SwipeMode.None;
-        _directionVector = Vector2.one;
+        _inGameManager.DirectionVector = Vector2.one;
         Material mat = Instantiate(_splitForCross.material);
-        mat.SetVector(DirectionVector, _directionVector);
+        mat.SetVector(DirectionVector, _inGameManager.DirectionVector);
         _splitForCross.material = mat;
         _inGameManager.LoadedStart += LoadedStart;
     }
@@ -100,7 +100,7 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem.Player.Look.performed += OnLookInput;
         _inputSystem.Player.Tap.canceled += _ =>
         {
-            _directionVector = _modifiedVector;
+            _inGameManager.DirectionVector = _modifiedVector;
             _tapPosition = null;
             _tapCheck = false;
             _timer = 0;
@@ -197,7 +197,7 @@ public class PlayerOperationManager : MonoBehaviour
         {
             _tapPosition = pos;
             _tapOriginAngle = Mathf.Atan2(pos.y, pos.x) * Mathf.Rad2Deg;
-            _directionAngle = Mathf.Atan2(_directionVector.y, _directionVector.x) * Mathf.Rad2Deg;
+            _directionAngle = Mathf.Atan2(_inGameManager.DirectionVector.y, _inGameManager.DirectionVector.x) * Mathf.Rad2Deg;
         }
 
         _maxMagnitude = Math.Max(_maxMagnitude, (pos - _tapPosition.Value).magnitude);

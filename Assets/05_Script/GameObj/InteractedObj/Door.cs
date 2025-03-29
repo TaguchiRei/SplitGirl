@@ -6,11 +6,13 @@ public class Door : InteractedObjectBase
     [SerializeField] Animator animator;
     public override void Interact()
     {
+        _isInteracted = true;
         animator.SetBool(Open,true);
     }
 
     public override void Cancel()
     {
+        _isInteracted = false;
         animator.SetBool(Open,false);
     }
 }

@@ -3,7 +3,7 @@ using UnityEngine;
 
 public abstract class InteractedObjectBase : MonoBehaviour
 {
-    private bool _isInteracted = false;
+    protected bool _isInteracted = false;
 
     public virtual void Interact()
     {

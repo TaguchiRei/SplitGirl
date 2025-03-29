@@ -2,12 +2,15 @@ using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Cysharp.Threading.Tasks;
+using UnityEngine.Serialization;
 
 public class InGameManager : MonoBehaviour
 {
     [SerializeField] private string _subScene;
     [SerializeField] private GameObject _Screen;
     [SerializeField] private PlayerAnimationManager _playerAnimationManager;
+    
+    public Vector2 DirectionVector; //現在の角度ベクトル
     
     public CameraMode cameraMode;
 
@@ -44,6 +47,11 @@ public class InGameManager : MonoBehaviour
     {
         cameraMode = mode;
     }
+
+    public void CheckInScreen(bool main, Vector3 worldPos)
+    {
+        
+    }
     
     public enum CameraMode
     {
@@ -52,5 +60,4 @@ public class InGameManager : MonoBehaviour
         MainOnly,
         SubOnly
     }
-
 }
