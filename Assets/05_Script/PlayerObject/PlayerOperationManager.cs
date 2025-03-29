@@ -39,21 +39,25 @@ public class PlayerOperationManager : MonoBehaviour
     private Vector3 _moveDirection;
 
     /// <summary>タップ中かどうかを保存</summary>
-    [SerializeField] private Vector2 _splitCenter; 
+    [SerializeField] private Vector2 _splitCenter;
+
     [SerializeField] InputAction _primaryTouchAction;
-    [SerializeField] Material _splitMaterial;//
-    private bool _tapCheck;//
-    private float _maxMagnitude;//
-    private float _timer;//
-    private Vector2? _tapPosition;//タップした位置
-    private SwipeMode _swipeMode;//スワイプモードかチェンジモードか
-    private Vector2 _changeSize;//直前のタップ位置の変化量
-    private Vector2 _directionVector;//現在の角度
-    private float _directionAngle;//現在の角度
-    private Vector2 _modefiedVector;//変更後角度ベクトル
-    private float _originAngle;//タップ位置のデフォルト角度
-    
-    
+    [SerializeField] Material _splitMaterial; //
+
+    private bool _tapCheck; //
+    private float _maxMagnitude; //
+    private float _timer; //
+
+    private Vector2? _tapPosition; //タップした位置
+    private SwipeMode _swipeMode; //スワイプモードかチェンジモードか
+    private Vector2 _changeTapPos; //直前のタップ位置の変化量
+
+    private Vector2 _directionVector; //現在の角度ベクトル
+    private float _directionAngle; //現在の角度
+    private Vector2 _modifiedVector; //変更後角度ベクトル
+    private float _tapOriginAngle; //タップ位置のデフォルト角度
+
+
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
     private bool ModeCheck =>
         _inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove;
@@ -70,7 +74,6 @@ public class PlayerOperationManager : MonoBehaviour
     {
         _swipeMode = SwipeMode.None;
         _directionVector = Vector2.one;
-        _directionAngle = Mathf.Atan2(_directionVector.y, _directionVector.x) * Mathf.Rad2Deg;
         Material mat = Instantiate(_splitForCross.material);
         mat.SetVector(DirectionVector, _directionVector);
         _splitForCross.material = mat;
@@ -96,16 +99,17 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem.Player.Look.performed += OnLookInput;
         _inputSystem.Player.Tap.canceled += _ =>
         {
-            Debug.Log("UnTap");
+            Debug.Log(_directionVector);
+            _directionVector = _modifiedVector;
             _tapPosition = null;
             _tapCheck = false;
             _timer = 0;
             _swipeMode = SwipeMode.None;
         };
-        
+
         _inputSystem.Player.Interact.started += OnInteractInput;
         _inputSystem.Enable();
-        _primaryTouchAction.performed += v => _changeSize = v.ReadValue<Vector2>();
+        _primaryTouchAction.performed += v => _changeTapPos = v.ReadValue<Vector2>();
         _primaryTouchAction.Enable();
     }
 
@@ -124,8 +128,9 @@ public class PlayerOperationManager : MonoBehaviour
 
     void Update()
     {
-        if (!_inGameManager.LoadedFlag ||_swipeMode == SwipeMode.None) return;
-        
+        _swipeMode = SwipeMode.SwipeToChange;
+        if (!_inGameManager.LoadedFlag || _swipeMode == SwipeMode.None) return;
+
         if (_maxMagnitude < 0.5f && _timer > 0.5f)
         {
             Debug.Log("Change");
@@ -149,7 +154,7 @@ public class PlayerOperationManager : MonoBehaviour
                 break;
             case false when SubMoveCheck:
                 _subRigidbody.linearVelocity =
-                    _subRigidbody.transform.TransformDirection(new Vector3(_moveDirection.x, 
+                    _subRigidbody.transform.TransformDirection(new Vector3(_moveDirection.x,
                         _subRigidbody.linearVelocity.y, _moveDirection.z));
                 break;
         }
@@ -191,29 +196,30 @@ public class PlayerOperationManager : MonoBehaviour
         if (_tapPosition == null)
         {
             _tapPosition = pos;
-            _originAngle = Mathf.Atan2(pos.y, pos.x) * Mathf.Rad2Deg;
+            _tapOriginAngle = Mathf.Atan2(pos.y, pos.x) * Mathf.Rad2Deg;
+            _directionAngle = Mathf.Atan2(_directionVector.y, _directionVector.x) * Mathf.Rad2Deg;
         }
+
         _maxMagnitude = Math.Max(_maxMagnitude, (pos - _tapPosition.Value).magnitude);
         switch (_swipeMode)
         {
             case SwipeMode.SwipeToChange:
-                pos = pos.normalized;
-                var addAngle = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
-                addAngle -= _originAngle;
-                Debug.Log(addAngle);
-                _directionAngle =_originAngle + addAngle;
-                ChangeMaterialDirection(new Vector2(Mathf.Cos(_directionAngle), Mathf.Sin(_directionAngle)));
+                var currentAngle = Mathf.Atan2(pos.y, pos.x) * Mathf.Rad2Deg;
+                var deltaAngle = Mathf.DeltaAngle(_tapOriginAngle, currentAngle);
+                var modAngle = _directionAngle + deltaAngle;
+                _modifiedVector = new Vector2(Mathf.Cos(modAngle * Mathf.Deg2Rad), Mathf.Sin(modAngle * Mathf.Deg2Rad));
+                ChangeMaterialDirection(_modifiedVector);
                 break;
+
             case SwipeMode.SwipeToLook:
-                Debug.Log("OnLookInput");
-                if(ModeCheck)
-                    _mainRigidbody.transform.eulerAngles += new Vector3(0, _changeSize.x / 3, 0);
+                if (ModeCheck)
+                    _mainRigidbody.transform.eulerAngles += new Vector3(0, _changeTapPos.x / 3, 0);
                 else
-                    _subRigidbody.transform.eulerAngles += new Vector3(0, _changeSize.x / 3, 0);
+                    _subRigidbody.transform.eulerAngles += new Vector3(0, _changeTapPos.x / 3, 0);
                 break;
         }
     }
-    
+
 
     /// <summary>
     /// インタラクト時に起動するメソッド
