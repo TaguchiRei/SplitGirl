@@ -45,12 +45,15 @@ public class PlayerOperationManager : MonoBehaviour
     private bool _tapCheck;//
     private float _maxMagnitude;//
     private float _timer;//
-    private Vector2? _tapPosition;
-    private SwipeMode _swipeMode;//
-    private Vector2 _changeSize;
-    private float _originAngle;//
-    private Vector2 _directionVector;
-
+    private Vector2? _tapPosition;//タップした位置
+    private SwipeMode _swipeMode;//スワイプモードかチェンジモードか
+    private Vector2 _changeSize;//直前のタップ位置の変化量
+    private Vector2 _directionVector;//現在の角度
+    private float _directionAngle;//現在の角度
+    private Vector2 _modefiedVector;//変更後角度ベクトル
+    private float _originAngle;//タップ位置のデフォルト角度
+    
+    
     /// <summary>Main操作モードならtrue、Sub操作モードならfalseを返す</summary>
     private bool ModeCheck =>
         _inGameManager.cameraMode is InGameManager.CameraMode.MainOnly or InGameManager.CameraMode.MainCameraMove;
@@ -67,7 +70,7 @@ public class PlayerOperationManager : MonoBehaviour
     {
         _swipeMode = SwipeMode.None;
         _directionVector = Vector2.one;
-        
+        _directionAngle = Mathf.Atan2(_directionVector.y, _directionVector.x) * Mathf.Rad2Deg;
         Material mat = Instantiate(_splitForCross.material);
         mat.SetVector(DirectionVector, _directionVector);
         _splitForCross.material = mat;
@@ -93,6 +96,7 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem.Player.Look.performed += OnLookInput;
         _inputSystem.Player.Tap.canceled += _ =>
         {
+            Debug.Log("UnTap");
             _tapPosition = null;
             _tapCheck = false;
             _timer = 0;
@@ -187,17 +191,21 @@ public class PlayerOperationManager : MonoBehaviour
         if (_tapPosition == null)
         {
             _tapPosition = pos;
-            _originAngle = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
+            _originAngle = Mathf.Atan2(pos.y, pos.x) * Mathf.Rad2Deg;
         }
         _maxMagnitude = Math.Max(_maxMagnitude, (pos - _tapPosition.Value).magnitude);
         switch (_swipeMode)
         {
             case SwipeMode.SwipeToChange:
-                var theta = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
-                theta -= _originAngle;
-                
+                pos = pos.normalized;
+                var addAngle = Mathf.Atan2(pos.x, pos.y) * Mathf.Rad2Deg;
+                addAngle -= _originAngle;
+                Debug.Log(addAngle);
+                _directionAngle =_originAngle + addAngle;
+                ChangeMaterialDirection(new Vector2(Mathf.Cos(_directionAngle), Mathf.Sin(_directionAngle)));
                 break;
             case SwipeMode.SwipeToLook:
+                Debug.Log("OnLookInput");
                 if(ModeCheck)
                     _mainRigidbody.transform.eulerAngles += new Vector3(0, _changeSize.x / 3, 0);
                 else
@@ -292,6 +300,13 @@ public class PlayerOperationManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void ChangeMaterialDirection(Vector2 direction)
+    {
+        Material mat = Instantiate(_splitForCross.material);
+        mat.SetVector(DirectionVector, direction);
+        _splitForCross.material = mat;
     }
 
     enum SwipeMode
