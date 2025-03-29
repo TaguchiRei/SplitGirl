@@ -10,6 +10,7 @@ using UnityEngine.UI;
 public class PlayerOperationManager : MonoBehaviour
 {
     private static readonly int DirectionVector = Shader.PropertyToID("_DirectionVector");
+    private static readonly int ShowLine = Shader.PropertyToID("_ShowLine");
 
     //----------------各マネージャー等の情報を保存------------------------
     [SerializeField] private PlayerAnimationManager _playerAnimationManager;
@@ -99,12 +100,12 @@ public class PlayerOperationManager : MonoBehaviour
         _inputSystem.Player.Look.performed += OnLookInput;
         _inputSystem.Player.Tap.canceled += _ =>
         {
-            Debug.Log(_directionVector);
             _directionVector = _modifiedVector;
             _tapPosition = null;
             _tapCheck = false;
             _timer = 0;
             _swipeMode = SwipeMode.None;
+            ChangeMaterialShowLine(0);
         };
 
         _inputSystem.Player.Interact.started += OnInteractInput;
@@ -128,13 +129,12 @@ public class PlayerOperationManager : MonoBehaviour
 
     void Update()
     {
-        _swipeMode = SwipeMode.SwipeToChange;
         if (!_inGameManager.LoadedFlag || _swipeMode == SwipeMode.None) return;
 
-        if (_maxMagnitude < 0.5f && _timer > 0.5f)
+        if (_maxMagnitude < 0.5f && _timer > 0.2f)
         {
-            Debug.Log("Change");
             _swipeMode = SwipeMode.SwipeToChange;
+            ChangeMaterialShowLine(1);
         }
         else
         {
@@ -312,6 +312,13 @@ public class PlayerOperationManager : MonoBehaviour
     {
         Material mat = Instantiate(_splitForCross.material);
         mat.SetVector(DirectionVector, direction);
+        _splitForCross.material = mat;
+    }
+
+    private void ChangeMaterialShowLine(int i)
+    {
+        Material mat = Instantiate(_splitForCross.material);
+        mat.SetFloat(ShowLine, i);
         _splitForCross.material = mat;
     }
 
