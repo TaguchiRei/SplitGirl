@@ -22,6 +22,13 @@ public class InGameManager : MonoBehaviour
     private Camera _mainCamera;
     private Camera _subCamera;
     
+    public static InGameManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        Instance = this;
+    }
+
 
     private void Start()
     {
