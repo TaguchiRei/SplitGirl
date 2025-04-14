@@ -2,28 +2,37 @@ using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEditor;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 public class InGameManager : MonoBehaviour
 {
+    private static readonly int Sub = Shader.PropertyToID("_Sub");
+    private static readonly int Main = Shader.PropertyToID("_Main");
     [SerializeField] private string _subScene;
-    [SerializeField] private GameObject _Screen;
+    [SerializeField] private Image _divisionScreen;
+    [SerializeField] private Image _mainScreen;
+    [SerializeField] private Image _subScreen;
     [SerializeField] private PlayerAnimationManager _playerAnimationManager;
 
     [SerializeField] private float _inScreenStandards;
-    
+
     public Vector2 DirectionVector; //現在の角度ベクトル
-    
+
     public CameraMode cameraMode;
 
     public Action LoadedStart;
-    
+
     public bool LoadedFlag;
-    
+
     private Camera _mainCamera;
     private Camera _subCamera;
-    
+
     public static InGameManager Instance { get; private set; }
+
+    [SerializeField] private TextMeshProUGUI ModeTMP;
 
     private void Awake()
     {
@@ -40,7 +49,6 @@ public class InGameManager : MonoBehaviour
 
     void Update()
     {
-        
     }
 
     /// <summary>
@@ -49,8 +57,10 @@ public class InGameManager : MonoBehaviour
     private async UniTask SubSceneLoad()
     {
         await SceneManager.LoadSceneAsync(_subScene, LoadSceneMode.Additive).ToUniTask();
-        _playerAnimationManager._mainPlayerAnimator = GameObject.FindGameObjectWithTag("MainPlayer").GetComponent<Animator>();
-        _playerAnimationManager._subPlayerAnimator = GameObject.FindGameObjectWithTag("SubPlayer").GetComponent<Animator>();
+        _playerAnimationManager._mainPlayerAnimator =
+            GameObject.FindGameObjectWithTag("MainPlayer").GetComponent<Animator>();
+        _playerAnimationManager._subPlayerAnimator =
+            GameObject.FindGameObjectWithTag("SubPlayer").GetComponent<Animator>();
         var cameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
         foreach (var camera in cameras)
         {
@@ -63,6 +73,9 @@ public class InGameManager : MonoBehaviour
                 _subCamera = camera;
             }
         }
+        
+        
+        
         LoadedStart?.Invoke();
         LoadedFlag = true;
     }
@@ -84,25 +97,56 @@ public class InGameManager : MonoBehaviour
         float crossProduct = DirectionVector.x * screenPos.y - DirectionVector.y * screenPos.x;
         if (main)
         {
-            return crossProduct < _inScreenStandards;
+            return cameraMode == CameraMode.MainOnly || crossProduct < _inScreenStandards;
         }
 
-        return crossProduct > _inScreenStandards;
+        return cameraMode == CameraMode.SubOnly || crossProduct > _inScreenStandards;
     }
 
     public void ModeChange()
     {
-        if(cameraMode != CameraMode.SubOnly)
+        if (cameraMode != CameraMode.SubOnly)
             cameraMode++;
         else
             cameraMode = CameraMode.MainCameraMove;
+        ModeSetting();
     }
-    
+
+    private void ModeSetting()
+    {
+        switch (cameraMode)
+        {
+            case CameraMode.MainCameraMove:
+                _divisionScreen.gameObject.SetActive(true);
+                _subScreen.gameObject.SetActive(false);
+                _mainScreen.gameObject.SetActive(false);
+                _divisionScreen.material.SetVector(Sub,Color.gray);
+                _divisionScreen.material.SetColor(Main, Color.white);
+                break;
+            case CameraMode.SubCameraMove:
+                _divisionScreen.gameObject.SetActive(true);
+                _subScreen.gameObject.SetActive(false);
+                _mainScreen.gameObject.SetActive(false);
+                _divisionScreen.material.SetVector(Main,Color.gray);
+                _divisionScreen.material.SetColor(Sub, Color.white);
+                break;
+            case CameraMode.MainOnly:
+                _divisionScreen.gameObject.SetActive(false);
+                _mainScreen.gameObject.SetActive(true);
+                break;
+            case CameraMode.SubOnly:
+                _divisionScreen.gameObject.SetActive(false);
+                _subScreen.gameObject.SetActive(true);
+                break;
+        }
+        ModeTMP.text = cameraMode.ToString();
+    }
+
     public enum CameraMode
     {
         MainCameraMove,
-        SubCameraMove,
         MainOnly,
+        SubCameraMove,
         SubOnly
     }
 }
