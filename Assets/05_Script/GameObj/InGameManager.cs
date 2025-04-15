@@ -73,8 +73,7 @@ public class InGameManager : MonoBehaviour
                 _subCamera = camera;
             }
         }
-        
-        
+        ModeSetting();
         
         LoadedStart?.Invoke();
         LoadedFlag = true;
@@ -83,6 +82,7 @@ public class InGameManager : MonoBehaviour
     public void ModeSet(CameraMode mode)
     {
         cameraMode = mode;
+        ModeSetting();
     }
 
     /// <summary>
@@ -133,9 +133,11 @@ public class InGameManager : MonoBehaviour
             case CameraMode.MainOnly:
                 _divisionScreen.gameObject.SetActive(false);
                 _mainScreen.gameObject.SetActive(true);
+                _subScreen.gameObject.SetActive(false);
                 break;
             case CameraMode.SubOnly:
                 _divisionScreen.gameObject.SetActive(false);
+                _mainScreen.gameObject.SetActive(false);
                 _subScreen.gameObject.SetActive(true);
                 break;
         }
