@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
@@ -30,6 +31,22 @@ public class PlayerMove : MonoBehaviour
                 , 0.2f, Vector3.down, out RaycastHit hit,20f,LayerMask.GetMask("MainGround","SubGround")))
         {
             OnGround = hit.distance < 1f;
+        }
+    }
+
+    private void OnCollisionEnter(Collision other)
+    {
+        if (other.gameObject.CompareTag("Ground"))
+        {
+            transform.SetParent(other.gameObject.transform);
+        }
+    }
+
+    private void OnCollisionExit(Collision other)
+    {
+        if (other.gameObject.CompareTag("Ground"))
+        {
+            transform.SetParent(null);
         }
     }
 
